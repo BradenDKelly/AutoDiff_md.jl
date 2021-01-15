@@ -6,7 +6,7 @@ include("integrators.jl")
 include("thermo_functions.jl")
 
 
-function simulate(r, v, box_size, temp, dt, nsteps)
+function simulate(r, v, m, box_size, temp, dt, nsteps)
     """
     The main loop for generating the molecular dynamics trajectory
 
@@ -14,6 +14,10 @@ function simulate(r, v, box_size, temp, dt, nsteps)
     ----------
     r : Vector{SVector{3}}
         vector of all atom coordinates
+    v : Vector{SVectors}
+        Starting velocites for each atom - read from some file
+    m : Vector
+        masses of all atoms
     box_size : SVector{3}
         Vector of x, y, z box lengths
     temp : Float64
@@ -23,8 +27,7 @@ function simulate(r, v, box_size, temp, dt, nsteps)
         time step (approximately 0.005 for reduced units)
     nsteps : Int64
         number of steps to take
-    v : Vector{SVectors}
-        Starting velocites for each atom - read from some file
+
 
     Returns
     ----------
@@ -32,8 +35,8 @@ function simulate(r, v, box_size, temp, dt, nsteps)
     return sample results
     """
     n = length(r)
-    v = initial_velocity(v)
-    println("Velocity center of mass: ", sum(v))
+    v = initial_velocity(m, v)
+    println("Momentum center of mass: ", sum(m .* v))
     println("Initial temperature is $(dot(v,v)/(3 * n - 3)) and A&T is 0.223094")
     temp_stat=[]
     press_stat=[]
@@ -43,20 +46,21 @@ function simulate(r, v, box_size, temp, dt, nsteps)
     f = analytical_total_force(r, box_size)
     vol = box_size[1]^3
     println("Initial pressure: ", n/vol + virial(r, box_size) / vol / 3, " A&T: ", 0.32 + (-603)/box_size[1]^3)
-
+    println("Initial KE $(kinetic_energy(v, m))")
+    println("Initial temperature: $(2 * kinetic_energy(v, m) / (3 * n - 3))")
 
     for i=1:nsteps
         # Calculate forces on all atoms
         f = analytical_total_force(r, box_size)
         # Solve Newtons equations of motion (we use Velocity Verlet)
-        integrator!(r, v, f, dt, box_size)
+        integrator!(r, v, f, m, dt, box_size)
         count += 1
         # Sample some things
         if count == 1000
             println("Current step is $i")
-            push!(temp_stat, dot(v,v)/(3 * n - 3))
-            KE = kinetic_energy(v)
+            KE = kinetic_energy(v, m)
             tmp = 2 * KE / (3 * n - 3)
+            push!(temp_stat, tmp)
             tot_vir = virial(r, box_size)
             press_f = press_full(tot_vir, n, vol, tmp)
             push!(press_stat, press_f)

@@ -1,24 +1,30 @@
 using StaticArrays
 
-function initial_velocity(e::Vector)
+function initial_velocity(m::Vector, v::Vector)
     """ This assumes we are being given a set of velocities.
-    We shift the velocities so that the center of mass velocity is 0
+    We shift the velocities so that the net momentum is 0
 
     Parameters
     ----------
-    e : Vector
+    v : Vector
         vector of SVectors, the list of each atoms starting velocities as read
         from some file
+    m : Vector
+        Vector of each atoms mass
 
     Returns
     ----------
     v : Vector{SVector{3}}
         vector of velocites that have center of mass velocity of zero
     """
-    n = length(e)
-    v = [SVector{3,Float64}(e[i]...) for i = 1:length(e)]
-    sumv = sum(v)./n
-    return [(v[i].-sumv) for i=1:n]
+    n = length(v)
+    v = [SVector{3,Float64}(v[i]...) for i = 1:length(v)]
+    sumv = sum(m .* v)./n
+    v = [(v[i] .- sumv ./ m[i])  for i=1:n]
+
+    sumv = sum(m .* v)./n
+    v = [(v[i] .- sumv ./ m[i])  for i=1:n]
+    return v
 end
 
 function InitCubicGrid(n::Int, rho::Real)

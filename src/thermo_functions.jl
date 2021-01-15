@@ -41,4 +41,4 @@ function virial(r::Vector, box)
     return tot_vir
 end
 press_full(vir::Float64, n::Int64, vol::Float64, tmp::Float64) = n / vol * tmp + vir / vol / 3
-kinetic_energy(v::Vector) = 0.5 * dot(v,v)
+kinetic_energy(v::Vector, m:: Vector) = 0.5 * dot(m .* v,v)

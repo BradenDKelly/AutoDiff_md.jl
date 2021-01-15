@@ -27,7 +27,7 @@ function pb!(r, box)
     r = SVector{3}(x, y, z)
 end
 
-function integrator!(r, v, f, dt, box_size)
+function integrator!(r, v, f, m, dt, box_size)
     """
     Velocity-Verlet integrator scheme.
 
@@ -39,6 +39,8 @@ function integrator!(r, v, f, dt, box_size)
         atom velocities
     f : Vector{SVector}
         forces on atoms
+    m : Vector{Float64}
+        masses of atoms
     dt : Float64
         time step (appx 0.005 for reduced units)
     box_size : SVector{3}
@@ -50,7 +52,7 @@ function integrator!(r, v, f, dt, box_size)
     n = length(r)
     for i=1:n
         # update velocities
-        v[i] = v[i] .+ 0.5 .* dt .* f[i]
+        v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
         # update positons (apply periodic boundary conditions)
         r[i] = pb!(r[i] .+ v[i] .* dt, box_size[1])
     end
@@ -58,6 +60,6 @@ function integrator!(r, v, f, dt, box_size)
     f = analytical_total_force(r, box_size)
     for i=1:n
         # update velocities
-        v[i] = v[i] .+ 0.5 .* dt .* f[i]
+        v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
     end
 end
