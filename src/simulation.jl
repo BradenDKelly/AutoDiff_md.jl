@@ -69,5 +69,5 @@ function simulate(r, v, box_size, temp, dt, nsteps)
     println("average temperature was: ", mean(temp_stat))
     println("average pressure was: ", mean(press_stat), " std is: ", std(press_stat))
     println("average energy was: ", mean(ener_stat))
-    println("average energy pp was: ", mean(ener_stat)/n, " std is: ", std(ener_stat)/n)
+    println("average energy per particle (E/n) was: ", mean(ener_stat)/n, " std is: ", std(ener_stat)/n)
 end
