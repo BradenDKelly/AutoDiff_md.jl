@@ -4,7 +4,10 @@ export
 
 
 """ Potential energy between two atoms"""
-@inline function pair_energy(r1::SVector{3}, r2::SVector{3}, box_size::SVector{3})
+@inline function pair_energy(r1::SVector{3}, r2::SVector{3},
+                            eps1::Real, eps2::Real,
+                            sig1::Real, sig2::Real,
+                            cutoff::Real, box_size::SVector{3})
     """
     Calculates the Lennard Jones energy between two atoms
 
@@ -14,6 +17,12 @@ export
         coordinate of atom 1
     r2 : SVector{3}
         coordinate of atom 2
+    eps : Vector
+        epsilon parameters of all atoms
+    sigma : Vector
+        sigma parameters of all atoms
+    cutoff : Float
+        interaction cutoff distance
     box_size : SVector{3}
         vector with box length in the x, y, z direction
 
@@ -34,23 +43,26 @@ export
     rij_sq = dx * dx + dy * dy + dz * dz
     #rij_sq = diff[1] * diff[1] + diff[2] * diff[2] + diff[3] * diff[3]
 
-    if  rij_sq > 2.5^2 #rij_sq > box_size[1] / 2
+    if  rij_sq > cutoff^2 #rij_sq > box_size[1] / 2
         return 0.0 * rij_sq
     end
+    sigma = (sig1 + sig2) / 2
+    epsilon = sqrt(eps1 * eps2)
 
-    sr2 = 1 / rij_sq
+    sr2 = sigma^2 / rij_sq
     sr6 = sr2^3
     sr12 = sr6^2
     # to match allen & Tildesly I add the cut potential manually
     # do not actually need 4 * (-0.004079222784000001)  otherwise
-    e = 4 * (sr12 - sr6) - 4 * (-0.004079222784000001)
+    e = 4 * epsilon * (sr12 - sr6) #- 4 * (-0.004079222784000001)
     return e
 
 end
 
 #using StaticArrays
 
-function total_energy(r::Vector{SVector{3, Float64}}, box_size::SVector{3,Float64})
+function total_energy(r::Vector{SVector{3, Float64}}, eps::Vector, sig::Vector,
+                    cutoff::Real, box_size::SVector{3,Float64})
     """
     Calculates the Lennard Jones energy of the system
 
@@ -67,11 +79,11 @@ function total_energy(r::Vector{SVector{3, Float64}}, box_size::SVector{3,Float6
         LJ potential energy of the system
     """
     n = length(r)
-    energetics = [0.0 for i=1:n ]
+    energetics = [0.0 for i=1:n]
     energy = 0.0
     for i = 1:(n-1)
         for j = (i+1):n
-            ans = pair_energy(r[i], r[j], box_size)
+            ans = pair_energy(r[i], r[j], eps[i], eps[j], sig[i], sig[j], cutoff, box_size)
             energy += ans
             energetics[i] += ans
         end

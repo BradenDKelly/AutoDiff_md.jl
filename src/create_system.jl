@@ -2,6 +2,7 @@
 export
     initial_velocity,
     initCubicGrid
+    velocity
 
 function initial_velocity(m::Vector, v::Vector)
     """ This assumes we are being given a set of velocities.
@@ -75,3 +76,27 @@ function initCubicGrid(n::Int, rho::Real)
         for i = 1:size(coords, 2)
     ], L
 end #function
+
+"""
+Generate a random velocity from the Maxwell-Boltzmann distribution.
+"""
+function velocity(T::Type, mass::Real, temp::Real; dims::Integer=3)
+    return SVector([maxwellboltzmann(T, mass, temp) for i in 1:dims]...)
+end
+
+function velocity(mass::Real, temp::Real; dims::Integer=3)
+    return velocity(DefaultFloat, mass, temp, dims=dims)
+end
+
+"""
+    maxwellboltzmann(mass, temperature)
+    maxwellboltzmann(T, mass, temperature)
+Draw from the Maxwell-Boltzmann distribution.
+"""
+function maxwellboltzmann(T::Type, mass::Real, temp::Real)
+    return rand(Normal(zero(T), sqrt(temp / mass)))
+end
+
+function maxwellboltzmann(mass::Real, temp::Real)
+    return maxwellboltzmann(DefaultFloat, mass, temp)
+end

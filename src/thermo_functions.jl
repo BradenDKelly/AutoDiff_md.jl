@@ -15,13 +15,19 @@ include("forces.jl")
         return (c1 - c2) < (c2 - c1 + box_size) ? (c2 - c1) : (c2 - c1 + box_size)
     end
 end
-function virial(r::Vector, box_size)
+function virial(r::Vector, eps::Vector, sig::Vector, cutoff::Real, box_size)
     """ Calculates the virial contribution to pressure
 
     Parameters
     ----------
     r : Vector{SVector{3}}
         Vector of atom coordinates
+    eps : Vector
+        epsilon parameters of all atoms
+    sigma : Vector
+        sigma parameters of all atoms
+    cutoff : Float
+        interaction cutoff distance
     box : SVector{3}
         Vector with x, y, z box lengths
 
@@ -34,7 +40,7 @@ function virial(r::Vector, box_size)
     tot_vir = 0.0
     for j=1:n-1
         for k=j+1:n
-            fij = grad(r[k],r[j], box_size)
+            fij = grad(r[k],r[j], eps[j], eps[k], sig[j], sig[k], cutoff, box_size)
             dx = vector1D(r[j][1], r[k][1], box_size[1])
             dy = vector1D(r[j][2], r[k][2], box_size[2])
             dz = vector1D(r[j][3], r[k][3], box_size[3])

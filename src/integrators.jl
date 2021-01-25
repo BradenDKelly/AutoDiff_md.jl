@@ -30,7 +30,7 @@ function pb!(r, box)
     r = SVector{3}(x, y, z)
 end
 
-function integrator!(r, v, f, m, dt, box_size)
+function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
     """
     Velocity-Verlet integrator scheme.
 
@@ -46,6 +46,12 @@ function integrator!(r, v, f, m, dt, box_size)
         masses of atoms
     dt : Float64
         time step (appx 0.005 for reduced units)
+    eps : Vector
+        epsilon parameters of all atoms
+    sigma : Vector
+        sigma parameters of all atoms
+    cutoff : Float
+        interaction cutoff distance
     box_size : SVector{3}
         vector of x, y, z box lengths (should all be the same)
 
@@ -60,7 +66,7 @@ function integrator!(r, v, f, m, dt, box_size)
         r[i] = pb!(r[i] .+ v[i] .* dt, box_size[1])
     end
     # update forces
-    f = analytical_total_force(r, box_size)
+    f = analytical_total_force(r, eps, sig, cutoff, box_size)
     for i=1:n
         # update velocities
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]

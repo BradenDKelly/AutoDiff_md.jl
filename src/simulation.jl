@@ -8,7 +8,7 @@ include("integrators.jl")
 include("thermo_functions.jl")
 
 
-function simulate(r, v, m, box_size, temp, dt, nsteps)
+function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
     """
     The main loop for generating the molecular dynamics trajectory
 
@@ -20,6 +20,10 @@ function simulate(r, v, m, box_size, temp, dt, nsteps)
         Starting velocites for each atom - read from some file
     m : Vector
         masses of all atoms
+    eps : Vector
+        epsilon parameter of all atoms
+    sig : Vector
+        sigma parameters of all atoms
     box_size : SVector{3}
         Vector of x, y, z box lengths
     temp : Float64
@@ -29,6 +33,8 @@ function simulate(r, v, m, box_size, temp, dt, nsteps)
         time step (approximately 0.005 for reduced units)
     nsteps : Int64
         number of steps to take
+    cutoff : Float
+        interaction cutoff distance
 
 
     Returns
@@ -45,17 +51,17 @@ function simulate(r, v, m, box_size, temp, dt, nsteps)
     ener_stat = []
     t = 0
     count = 0
-    f = analytical_total_force(r, box_size)
+    f = analytical_total_force(r, eps, sig, cutoff, box_size)
     vol = box_size[1]^3
-    println("Initial pressure: ", n/vol + virial(r, box_size) / vol / 3, " A&T: ", 0.32 + (-603)/box_size[1]^3)
+    println("Initial pressure: ", n/vol + virial(r, eps, sig, cutoff, box_size) / vol / 3, " A&T: ", 0.32 + (-603)/box_size[1]^3)
     println("Initial KE $(kinetic_energy(v, m))")
     println("Initial temperature: $(2 * kinetic_energy(v, m) / (3 * n - 3))")
 
     for i=1:nsteps
         # Calculate forces on all atoms
-        f = analytical_total_force(r, box_size)
+        f = analytical_total_force(r, eps, sig, cutoff, box_size)
         # Solve Newtons equations of motion (we use Velocity Verlet)
-        integrator!(r, v, f, m, dt, box_size)
+        integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
         count += 1
         # Sample some things
         if count == 1000
@@ -63,10 +69,10 @@ function simulate(r, v, m, box_size, temp, dt, nsteps)
             KE = kinetic_energy(v, m)
             tmp = 2 * KE / (3 * n - 3)
             push!(temp_stat, tmp)
-            tot_vir = virial(r, box_size)
+            tot_vir = virial(r, eps, sig, cutoff, box_size)
             press_f = press_full(tot_vir, n, vol, tmp)
             push!(press_stat, press_f)
-            push!(ener_stat, KE + total_energy(r, box_size)[1])
+            push!(ener_stat, KE + total_energy(r, eps, sig, cutoff, box_size)[1])
             count = 0
         end
         # step time forward

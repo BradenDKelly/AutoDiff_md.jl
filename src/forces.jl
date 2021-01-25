@@ -110,9 +110,10 @@ end
 
 # analytical_force = x -> ForwardDiff.gradient(pair_energy, x, y, box_size)
 """ Calculates the force between two atoms using ForwardDiff"""
-grad(x,y,b) = -ForwardDiff.gradient(x -> pair_energy(x, y, b), x)
+grad(x,y, e1, e2, s1, s2, c, b) = -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
 
-function analytical_total_force(r::Vector{SVector{3, Float64}}, box_size::SVector{3,Float64})
+function analytical_total_force(r::Vector{SVector{3, Float64}}, eps::Vector,
+                                sig::Vector, cutoff::Real, box_size::SVector{3,Float64})
     """
     Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -133,7 +134,7 @@ function analytical_total_force(r::Vector{SVector{3, Float64}}, box_size::SVecto
 
     for i = 1:(n-1)
         for j = (i+1):n
-            dE_dr = grad(r[i], r[j], box_size)  #
+            dE_dr = grad(r[i], r[j], eps[i], eps[j], sig[i], sig[j], cutoff, box_size)  #
             forces[i] = forces[i] + dE_dr
             forces[j] = forces[j] - dE_dr
         end
