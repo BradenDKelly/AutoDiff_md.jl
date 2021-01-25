@@ -1,4 +1,6 @@
-
+export
+    pair_energy,
+    total_energy
 
 
 """ Potential energy between two atoms"""
@@ -46,7 +48,7 @@
 
 end
 
-using StaticArrays
+#using StaticArrays
 
 function total_energy(r::Vector{SVector{3, Float64}}, box_size::SVector{3,Float64})
     """

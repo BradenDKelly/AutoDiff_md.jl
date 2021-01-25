@@ -1,4 +1,7 @@
-using StaticArrays
+#using StaticArrays
+export
+    pb!,
+    integrator!
 
 function pb!(r, box)
     """ Periodic Boundary Conditions

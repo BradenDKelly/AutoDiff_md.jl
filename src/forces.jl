@@ -1,6 +1,12 @@
-using ForwardDiff
-using Setfield
-using StaticArrays
+#using ForwardDiff
+#using Setfield
+#using StaticArrays
+export
+    grad,
+    pair_force,
+    numerical_total_force,
+    analytical_total_force,
+    total_force
 
 include("energies.jl")
 

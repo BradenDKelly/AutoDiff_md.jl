@@ -1,4 +1,7 @@
-using StaticArrays
+#using StaticArrays
+export
+    initial_velocity,
+    initCubicGrid
 
 function initial_velocity(m::Vector, v::Vector)
     """ This assumes we are being given a set of velocities.
@@ -27,7 +30,7 @@ function initial_velocity(m::Vector, v::Vector)
     return v
 end
 
-function InitCubicGrid(n::Int, rho::Real)
+function initCubicGrid(n::Int, rho::Real)
 
     #!------------------------------------------------------------------------
     #! Created by Braden Kelly

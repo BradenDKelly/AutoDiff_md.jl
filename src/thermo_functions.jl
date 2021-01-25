@@ -1,5 +1,10 @@
-using StaticArrays
-using Statistics
+#using StaticArrays
+#using Statistics
+export
+    virial,
+    press_full,
+    kinetic_energy
+
 include("forces.jl")
 
 "Vector between two coordinate values, accounting for mirror image seperation"
@@ -10,7 +15,7 @@ include("forces.jl")
         return (c1 - c2) < (c2 - c1 + box_size) ? (c2 - c1) : (c2 - c1 + box_size)
     end
 end
-function virial(r::Vector, box)
+function virial(r::Vector, box_size)
     """ Calculates the virial contribution to pressure
 
     Parameters

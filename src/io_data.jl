@@ -1,4 +1,5 @@
-
+export
+    ReadCNF
 
 function ReadCNF(input)
     """

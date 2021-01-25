@@ -1,4 +1,6 @@
-using StaticArrays
+#using StaticArrays
+export
+    simulate
 
 include("forces.jl")
 include("energies.jl")
