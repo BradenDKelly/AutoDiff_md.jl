@@ -64,6 +64,9 @@ function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
         # update positons (apply periodic boundary conditions)
         r[i] = pb!(r[i] .+ v[i] .* dt, box_size[1])
+        if maximum(r[i]) > box_size[1]
+            println("atom $i is at coord $(r[i])")
+        end
     end
     # update forces
     f = analytical_total_force(r, eps, sig, cutoff, box_size)

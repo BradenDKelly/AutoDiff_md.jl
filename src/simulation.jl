@@ -45,12 +45,11 @@ function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
     n = length(r)
     v = initial_velocity(m, v)
     println("Momentum center of mass: ", sum(m .* v))
-    println("Initial temperature is $(dot(v,v)/(3 * n - 3)) and A&T is 0.223094")
+    #println("Initial temperature is $(dot(v,v)/(3 * n - 3)) and A&T is 0.223094")
     temp_stat=[]
     press_stat=[]
     ener_stat = []
     t = 0
-    count = 0
     f = analytical_total_force(r, eps, sig, cutoff, box_size)
     vol = box_size[1]^3
     println("Initial pressure: ", n/vol + virial(r, eps, sig, cutoff, box_size) / vol / 3, " A&T: ", 0.32 + (-603)/box_size[1]^3)
@@ -62,10 +61,8 @@ function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
         f = analytical_total_force(r, eps, sig, cutoff, box_size)
         # Solve Newtons equations of motion (we use Velocity Verlet)
         integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
-        count += 1
         # Sample some things
-        if count == 1000
-            println("Current step is $i")
+        if i % 100 == 0
             KE = kinetic_energy(v, m)
             tmp = 2 * KE / (3 * n - 3)
             push!(temp_stat, tmp)
@@ -73,8 +70,13 @@ function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
             press_f = press_full(tot_vir, n, vol, tmp)
             push!(press_stat, press_f)
             push!(ener_stat, KE + total_energy(r, eps, sig, cutoff, box_size)[1])
-            count = 0
+            if i % 1000 == 0
+                println("Current step is $i, temperature is $tmp, pressure is $press_f total energy is $(KE + total_energy(r, eps, sig, cutoff, box_size)[1])
+                ")
+            end
         end
+
+
         # step time forward
         t += dt
     end
@@ -82,4 +84,7 @@ function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
     println("average pressure was: ", mean(press_stat), " std is: ", std(press_stat))
     println("average energy was: ", mean(ener_stat))
     println("average energy per particle (E/n) was: ", mean(ener_stat)/n, " std is: ", std(ener_stat)/n)
+    display(plot(1:length(temp_stat), temp_stat))
+    #plim = box_size[1]
+    #display(plot3d(r, xlim = (0, plim), ylim = (0, plim), zlim = (0, plim),title = "Simulation",marker = 2))
 end

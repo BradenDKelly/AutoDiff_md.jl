@@ -1,8 +1,10 @@
 #using StaticArrays
 export
     initial_velocity,
-    initCubicGrid
+    initCubicGrid,
     velocity
+
+const DefaultFloat = Float64
 
 function initial_velocity(m::Vector, v::Vector)
     """ This assumes we are being given a set of velocities.

@@ -1,8 +1,11 @@
 module AutoDiff_md
 
 using BenchmarkTools
+using Distributions
 using ForwardDiff
 using LinearAlgebra
+using Plots
+using Random
 using StaticArrays
 using Setfield
 using Statistics
