@@ -13,17 +13,32 @@ An example for using it is:
 using AutoDiff_md
 using StaticArrays
 
-# This simulation assumes mass = 1
-temp = 1.       # temperature (not actually used since this is NVE)
-dt = 0.005      # time step
-nsteps = 10000  # number of steps to use for trajectory
+temp = 119.8    # temperature, Kelvin (used for initial velocity)
+dt = 0.005      # time step dimensionless
+dt = 0.0002     # time step with units (picoseconds)
+nsteps = 3000   # number of steps to use for trajectory
+natoms = 256
 
-# get initial coordinates, velocity, boxsize from file
-r, v, L = ReadCNF("cnf.inp")
+# parameters for Argon
+epsilon, sigma, mass = 0.997, 0.3405, 39.94
+eps = [epsilon for i=1:natoms]
+sig = [sigma for i=1:natoms]
+m = [mass for i=1:natoms]
 
+box = 3.0 # nm
+rho = natoms / box^3
+# initial coordinates, r. Atoms placed on a lattice to ensure clean start.
+r, L = initCubicGrid(natoms, rho)
 box_size = SVector{3}(L, L, L)
-m = ones(length(r)) # all masses are unit 1
+cutoff = box_size[1] / 2 * 0.9
+v = [velocity(mass, temp) for i in 1:natoms]
+println("Starting box size is: $box_size")
 
-# run the simulation
-simulate(r, v, m, box_size, temp, dt, nsteps)
+# equilibrate
+simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
+
+# Production run
+dt = 0.00109
+nsteps = 30000
+simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
 ```
