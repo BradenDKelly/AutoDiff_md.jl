@@ -103,8 +103,16 @@ LJ_force(eps, sig, r) = 48 * eps * r / r^2 * ( (sig / r)^12 - 0.5 * (sig / r)^6)
     @test !isapprox(f[256], f256, atol=1e-16, rtol=1e-16)
     # test 4, 32, 64, 216, 512, 1024 particle size
 
-    # test periodic boundary conditions
+    # test periodic boundary conditions. assumes box is 0 -> box_size
+    @test isapprox(pb!(SVector(2.0, 0.0, 0.0), 1.5), SVector(0.5, 0.0, 0.0))
+    @test !isapprox(pb!(SVector(2.0, 0.0, 0.0), 1.5), SVector(2.0, 0.0, 0.0))
+    @test isapprox(pb!(SVector(-0.5, 0.0, 0.0), 1.5), SVector(1.0, 0.0, 0.0))
 
+    @test isapprox(pb!(SVector(0.0, 2.0, 0.0), 1.5), SVector(0.0, 0.5, 0.0))
+    @test isapprox(pb!(SVector(0.0, -1.0, 0.0), 1.5), SVector(0.0, 0.5, 0.0))
+
+    @test isapprox(pb!(SVector(0.0, 0.0, 2.0), 1.5), SVector(0.0, 0.0, 0.5))
+    @test isapprox(pb!(SVector(0.0, 0.0, -1.3), 1.5), SVector(0.0, 0.0, 0.2))
     # test maxwellboltzmann
 
     # test input read
