@@ -128,6 +128,20 @@ LJ_force(eps, sig, r) = 48 * eps * r / r^2 * ( (sig / r)^12 - 0.5 * (sig / r)^6)
 
     # test pressure
 
+    temp = 1.0     # temperature (used for initial velocity)
+    dt = 0.005      # time step dimensionless
+    nsteps = 7000
+    mutable struct Properties
+        kinetic_temp::Real
+        pressure::Real
+        total_energy::Real
+    end
+    props = Properties(0.0, 0.0, 0.0)
+    # TODO add @test_logs or suppressor.jl here to avoid print output
+    simulate!(r, v, m, eps, sig, box_size, temp, dt, nsteps, cut, props)
+    @test  0.90 < props.kinetic_temp * 0.00831446 < 1.1
+    @test  -0.1 < props.pressure < 0.0
+    @test  -250 < props.total_energy < -240
 
 
 

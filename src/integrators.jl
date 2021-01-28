@@ -30,7 +30,7 @@ function pb!(r, box)
     r = SVector{3}(x, y, z)
 end
 
-function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
+function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp, thermo_couple)
     """
     Velocity-Verlet integrator scheme.
 
@@ -72,6 +72,11 @@ function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
     f = analytical_total_force(r, eps, sig, cutoff, box_size)
     for i=1:n
         # update velocities
-        v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
-    end
-end
+        if rand() < thermo_couple * dt
+            # Andersen Thermostat
+            v[i] = velocity(m[i], temp)
+        else
+            v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
+        end # if statement
+    end # for loop
+end # function

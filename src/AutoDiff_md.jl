@@ -1,10 +1,12 @@
 module AutoDiff_md
 
 using BenchmarkTools
+using Dates
 using Distributions
 using ForwardDiff
 using LinearAlgebra
 using Plots
+using Printf
 using Random
 using StaticArrays
 using Setfield

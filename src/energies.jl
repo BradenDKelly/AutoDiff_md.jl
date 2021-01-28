@@ -81,8 +81,8 @@ function total_energy(r::Vector{SVector{3, Float64}}, eps::Vector, sig::Vector,
     n = length(r)
     energetics = [0.0 for i=1:n]
     energy = 0.0
-    for i = 1:(n-1)
-        for j = (i+1):n
+    @inbounds for i = 1:(n-1)
+        @inbounds @simd for j = (i+1):n
             ans = pair_energy(r[i], r[j], eps[i], eps[j], sig[i], sig[j], cutoff, box_size)
             energy += ans
             energetics[i] += ans

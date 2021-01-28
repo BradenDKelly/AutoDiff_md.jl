@@ -1,6 +1,6 @@
 #using StaticArrays
 export
-    simulate
+    simulate!
 
 include("forces.jl")
 include("energies.jl")
@@ -8,7 +8,7 @@ include("integrators.jl")
 include("thermo_functions.jl")
 
 
-function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
+function simulate!(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff, props)
     """
     The main loop for generating the molecular dynamics trajectory
 
@@ -35,6 +35,8 @@ function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
         number of steps to take
     cutoff : Float
         interaction cutoff distance
+    props : Struct
+        struct with properties such as temp, press, energy etc
 
 
     Returns
@@ -49,31 +51,43 @@ function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
     temp_stat=[]
     press_stat=[]
     ener_stat = []
+    KE_stat = []
+    PE_stat = []
     t = 0
     f = analytical_total_force(r, eps, sig, cutoff, box_size)
     vol = box_size[1]^3
     println("Initial pressure: ", n/vol + virial(r, eps, sig, cutoff, box_size) / vol / 3, " A&T: ", 0.32 + (-603)/box_size[1]^3)
     println("Initial KE $(kinetic_energy(v, m))")
-    println("Initial temperature: $(2 * kinetic_energy(v, m) / (3 * n - 3))")
-
+    println("Initial temperature: $(2 * kinetic_energy(v, m) / (3 * n - 3) / 0.0083144621)")
+    thermo_couple = 1.0
     for i=1:nsteps
         # Calculate forces on all atoms
         f = analytical_total_force(r, eps, sig, cutoff, box_size)
+
         # Solve Newtons equations of motion (we use Velocity Verlet)
-        integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
+        #integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size)
+
+        # Solve Newtons equations of motion (use vv and Andersen thermostat)
+        integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp, thermo_couple)
         # Sample some things
         if i % 100 == 0
             KE = kinetic_energy(v, m)
-            tmp = 2 * KE / (3 * n - 3)
+            push!(KE_stat, KE)
+            tmp = 2 * KE / (3 * n - 3) / 0.0083144621
             push!(temp_stat, tmp)
             tot_vir = virial(r, eps, sig, cutoff, box_size)
             press_f = press_full(tot_vir, n, vol, tmp)
+            PE = total_energy(r, eps, sig, cutoff, box_size)[1]
             push!(press_stat, press_f)
-            push!(ener_stat, KE + total_energy(r, eps, sig, cutoff, box_size)[1])
+            push!(ener_stat, KE + PE)
+            push!(PE_stat, PE)
             if i % 1000 == 0
-                println("Current step is $i, temperature is $tmp, pressure is $press_f total energy is $(KE + total_energy(r, eps, sig, cutoff, box_size)[1])
-                ")
+                println("Current step is $i, temp is $tmp, KE is $KE, PE is $PE, press is $press_f, total energy is $(KE + PE)")
             end
+        end
+
+        if i % 1000 == 0
+            PrintPDB_argon(r, box_size, i)
         end
 
 
@@ -83,8 +97,15 @@ function simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
     println("average temperature was: ", mean(temp_stat))
     println("average pressure was: ", mean(press_stat), " std is: ", std(press_stat))
     println("average energy was: ", mean(ener_stat))
+    println("average KE was: ", mean(KE_stat))
+    println("average PE was: ", mean(PE_stat))
     println("average energy per particle (E/n) was: ", mean(ener_stat)/n, " std is: ", std(ener_stat)/n)
-    display(plot(1:length(temp_stat), temp_stat))
+    display(plot(1:length(temp_stat), temp_stat, title = "Temperature vs steps(100)", label = "Temperature", xlabel = "Iteration (100's)", ylabel = "Kinetic Temperature, K"))
+    display(plot(1:length(KE_stat), KE_stat, title = "KE vs steps(100)", label = "KE", xlabel = "Iteration (100's)", ylabel = "Kinetic Energy kJ/mol"))
+    display(plot(1:length(PE_stat), PE_stat, title = "PE vs steps(100)", label = "PE", xlabel = "Iteration (100's)", ylabel = "Potential Energy, kJ/mol"))
+    props.kinetic_temp = mean(temp_stat)
+    props.pressure = mean(press_stat)
+    props.total_energy = mean(ener_stat)
     #plim = box_size[1]
     #display(plot3d(r, xlim = (0, plim), ylim = (0, plim), zlim = (0, plim),title = "Simulation",marker = 2))
 end

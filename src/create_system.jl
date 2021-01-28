@@ -96,7 +96,7 @@ end
 Draw from the Maxwell-Boltzmann distribution.
 """
 function maxwellboltzmann(T::Type, mass::Real, temp::Real)
-    return rand(Normal(zero(T), sqrt(temp / mass)))
+    return rand(Normal(zero(T), sqrt(0.0083144621 * temp / mass)))
 end
 
 function maxwellboltzmann(mass::Real, temp::Real)
