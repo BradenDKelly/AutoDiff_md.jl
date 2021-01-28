@@ -8,7 +8,7 @@ include("integrators.jl")
 include("thermo_functions.jl")
 
 
-function simulate!(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff, props)
+function simulate!(r, v, m, eps, sig, box_size, temp, press, dt, nsteps, cutoff, props, pcouple)
     """
     The main loop for generating the molecular dynamics trajectory
 
@@ -29,6 +29,8 @@ function simulate!(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff, props)
     temp : Float64
         set temperature (not used, we don't use Maxwell-Boltzmann for initial
         velocities, we read them from file)
+    press : Float64
+        set (desired) pressure for the npt ensemble
     dt : Float64
         time step (approximately 0.005 for reduced units)
     nsteps : Int64
@@ -60,6 +62,12 @@ function simulate!(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff, props)
     println("Initial KE $(kinetic_energy(v, m))")
     println("Initial temperature: $(2 * kinetic_energy(v, m) / (3 * n - 3) / 0.0083144621)")
     thermo_couple = 1.0
+    vmax = log(box_size[1]^3 * 0.01)
+    println("vmax $vmax exp(vmax) $(exp(vmax))")
+    thermostat = true
+    barostat = true
+    v_attempt = 0
+    v_accept = 0
     for i=1:nsteps
         # Calculate forces on all atoms
         f = analytical_total_force(r, eps, sig, cutoff, box_size)
@@ -69,6 +77,21 @@ function simulate!(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff, props)
 
         # Solve Newtons equations of motion (use vv and Andersen thermostat)
         integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp, thermo_couple)
+
+        # thermostat
+        if thermostat
+            andersen!(v, m, temp, dt, thermo_couple)
+        end
+
+        # barostat
+        if barostat && i % pcouple == 0
+            v_attempt += 1
+            box_old = box_size[1]
+            r, box_size = volume_change_lj_MC!(r, box_size, eps, sig, cutoff, temp, press, vmax)
+            if box_size[1] != box_old
+                v_accept += 1
+            end
+        end
         # Sample some things
         if i % 100 == 0
             KE = kinetic_energy(v, m)
@@ -82,7 +105,8 @@ function simulate!(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff, props)
             push!(ener_stat, KE + PE)
             push!(PE_stat, PE)
             if i % 1000 == 0
-                println("Current step is $i, temp is $tmp, KE is $KE, PE is $PE, press is $press_f, total energy is $(KE + PE)")
+                @printf("Current step is %d, temp is %.3f, KE is %.3f, PE is %.3f, press is %.3f, total energy is %.3f box is %.3f acceptance ratio %.3f\n", i, tmp, KE, PE, press_f, KE+PE, box_size[1], v_accept / v_attempt)
+                #println("coords $(r[1]), $(r[250]), $(r[500]), $(r[750]), $(r[1000])")
             end
         end
 

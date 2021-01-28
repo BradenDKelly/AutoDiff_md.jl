@@ -72,11 +72,6 @@ function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp, thermo_co
     f = analytical_total_force(r, eps, sig, cutoff, box_size)
     for i=1:n
         # update velocities
-        if rand() < thermo_couple * dt
-            # Andersen Thermostat
-            v[i] = velocity(m[i], temp)
-        else
-            v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
-        end # if statement
+        v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
     end # for loop
 end # function

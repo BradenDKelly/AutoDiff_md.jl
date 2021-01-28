@@ -19,6 +19,8 @@ include("integrators.jl")
 include("io_data.jl")
 include("simulation.jl")     # simulate()
 include("thermo_functions.jl")
+include("thermostats.jl")
+include("volume_change.jl")
 
 function __init__()
 
