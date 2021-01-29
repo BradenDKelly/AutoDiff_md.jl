@@ -22,8 +22,8 @@ include("thermo_functions.jl")
 include("thermostats.jl")
 include("volume_change.jl")
 
-function __init__()
+#function __init__()
 
-end
+#end
 
 end

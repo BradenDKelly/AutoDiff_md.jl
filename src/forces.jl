@@ -10,9 +10,6 @@ export
 
 include("energies.jl")
 
-
-
-""" Force between two atoms"""
 @inline function pair_force(r1::SVector{3, Float64}, r2::SVector{3, Float64}, box_size)
     """
     Calculates the Lennard Jones Force between two atoms
@@ -109,8 +106,10 @@ function numerical_total_force(r::Vector{SVector{3, Float64}}, box_size::SVector
 end
 
 # analytical_force = x -> ForwardDiff.gradient(pair_energy, x, y, box_size)
-""" Calculates the force between two atoms using ForwardDiff"""
+
 grad(x,y, e1, e2, s1, s2, c, b) = -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
+""" Calculates the force between two atoms using ForwardDiff"""
+
 
 function analytical_total_force(r::Vector{SVector{3, Float64}}, eps::Vector,
                                 sig::Vector, cutoff::Real, box_size::SVector{3,Float64})

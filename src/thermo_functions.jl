@@ -7,8 +7,9 @@ export
 
 include("forces.jl")
 
-"Vector between two coordinate values, accounting for mirror image seperation"
+
 @inline function vector1D(c1, c2, box_size)
+    """Vector between two coordinate values, accounting for mirror image seperation"""
     if c1 < c2
         return (c2 - c1) < (c1 - c2 + box_size) ? (c2 - c1) : (c2 - c1 - box_size)
     else

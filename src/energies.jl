@@ -2,8 +2,6 @@ export
     pair_energy,
     total_energy
 
-
-""" Potential energy between two atoms"""
 @inline function pair_energy(r1::SVector{3}, r2::SVector{3},
                             eps1::Real, eps2::Real,
                             sig1::Real, sig2::Real,
