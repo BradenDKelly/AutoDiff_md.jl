@@ -54,7 +54,8 @@ export
     sr12 = sr6^2
     # to match allen & Tildesly I add the cut potential manually
     # do not actually need 4 * (-0.004079222784000001)  otherwise
-    e = 4 * epsilon * (sr12 - sr6) #- 4 * (-0.004079222784000001)
+    # current shift is for r=1.2 nm
+    e = 4 * epsilon * (sr12 - sr6)- (-0.002078435714914992) #- 4 * (-0.004079222784000001)
     return e
 
 end

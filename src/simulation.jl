@@ -77,7 +77,6 @@ function simulate!(r, v, m, eps, sig, box_size, temp, press, dt, nsteps, cutoff,
 
         # Solve Newtons equations of motion (use vv and Andersen thermostat)
         integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp, thermo_couple)
-
         # thermostat
         if thermostat
             andersen!(v, m, temp, dt, thermo_couple)
@@ -86,11 +85,13 @@ function simulate!(r, v, m, eps, sig, box_size, temp, press, dt, nsteps, cutoff,
         # barostat
         if barostat && i % pcouple == 0
             v_attempt += 1
-            box_old = box_size[1]
-            r, box_size = volume_change_lj_MC!(r, box_size, eps, sig, cutoff, temp, press, vmax)
+            box_old = deepcopy(box_size[1])
+            r_old = deepcopy(r[1])
+            r, box_size, cutoff = volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
             if box_size[1] != box_old
                 v_accept += 1
             end
+            vol = box_size[1] * box_size[2] * box_size[3]
         end
         # Sample some things
         if i % 100 == 0
