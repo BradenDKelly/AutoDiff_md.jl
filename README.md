@@ -13,32 +13,28 @@ An example for using it is:
 using AutoDiff_md
 using StaticArrays
 
-temp = 119.8    # temperature, Kelvin (used for initial velocity)
-dt = 0.005      # time step dimensionless
-dt = 0.0002     # time step with units (picoseconds)
-nsteps = 3000   # number of steps to use for trajectory
-natoms = 256
+temp = 119.8 * 2     # temperature (used for initial velocity)
+dt = 0.002      # time step dimensionless
+nsteps = 50000   # number of steps to use for trajectory
+natoms = 1000
 
 # parameters for Argon
-epsilon, sigma, mass = 0.997, 0.3405, 39.94
+epsilon, sigma, mass = 0.996066, 0.3405, 39.96
 eps = [epsilon for i=1:natoms]
 sig = [sigma for i=1:natoms]
 m = [mass for i=1:natoms]
+r, v, L = Read_gromacs("nvt_equil.g96")
+press = 14.0
+pcouple = 10 # # time steps between vol changes
 
-box = 3.0 # nm
-rho = natoms / box^3
-# initial coordinates, r. Atoms placed on a lattice to ensure clean start.
-r, L = initCubicGrid(natoms, rho)
 box_size = SVector{3}(L, L, L)
-cutoff = box_size[1] / 2 * 0.9
+cutoff = 1.2 # box_size[1] / 2 * 0.9
 v = [velocity(mass, temp) for i in 1:natoms]
-println("Starting box size is: $box_size")
 
-# equilibrate
-simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
-
-# Production run
-dt = 0.00109
-nsteps = 30000
-simulate(r, v, m, eps, sig, box_size, temp, dt, nsteps, cutoff)
-```
+mutable struct Properties
+    kinetic_temp::Real
+    pressure::Real
+    total_energy::Real
+end
+props = Properties(0.0, 0.0, 0.0)
+simulate!(r, v, m, eps, sig, box_size, temp, press, dt, nsteps, cutoff, props, pcouple)
