@@ -1,0 +1,47 @@
+[ defaults ]
+; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ
+  1             2               no             1       1
+
+[ atomtypes ]
+; name   atype    mass      charge     ptype  sigma(nm)     epsilon(kJ/mol)  
+  A        A    39.96     0.000      A        0.3405        0.996066 
+  D        D    39.96     0.000      A        0.3405        0.996966
+  E        E    39.96     0.000      A        0.37455	    0.8964594
+ ED        ED   39.96     0.000      A        0.37455       0.8964594
+
+[ moleculetype ]
+; Name            nrexcl
+ED               3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass 
+1           ED      01     ED     ED      1          0     39.96 
+
+[ moleculetype ]                                                                                                                  ; Name            nrexcl
+A               3
+                                                                                                                 
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass
+1           A      01     A     A      1          0     39.96 
+
+[ moleculetype ]                                                                                                                  ; Name            nrexcl
+D               3
+                                                                                                                 
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass
+1           D      01     D     D      1          0     39.96 
+
+[ moleculetype ]
+ E        3
+
+[ atoms ]
+1       E    01   E     E    1    0    39.96
+
+[ system ]
+A goes to D and E 
+
+[ molecules ]
+ED      1
+A       333
+D       333
+E       333

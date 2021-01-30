@@ -1,0 +1,65 @@
+[ defaults ]
+; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ
+  1             2               no             1       1
+
+[ atomtypes ]
+; name   atype    mass      charge     ptype  sigma(nm)     epsilon(kJ/mol)  
+  N        N    28.02     0.000      A        0.3617        0.76077 
+  O        O    32.00     0.000      A        0.3433        0.9395
+  NO       NO   30.01     0.000      A        0.3470	    0.98894
+  ND       ND   28.02     0.000      A        0.3617        0.76077 
+  OD       OD   32.00     0.000      A        0.3433        0.9395
+  NOD      NOD  30.01     0.000      A        0.3470	    0.98894
+
+[ moleculetype ]
+; Name            nrexcl
+ND               3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass 
+1           ND      01     ND     ND      1          0     28.02 
+
+[ moleculetype ]
+; Name            nrexcl
+OD               3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass 
+1           OD      01     OD     OD      1          0     32.00 
+
+[ moleculetype ]
+; Name            nrexcl
+NOD               3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass 
+1           NOD      01     NOD     NOD      1          0     30.01 
+
+[ moleculetype ]                                                                                                                  ; Name            nrexcl
+N               3
+                                                                                                                 
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass
+1           N      01     N     N      1          0     28.02 
+
+[ moleculetype ]                                                                                                                  ; Name            nrexcl
+O               3
+                                                                                                                 
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass
+1           O      01     O     O      1          0     32.00 
+
+[ moleculetype ]
+ NO        3
+
+[ atoms ]
+1       NO    01   NO     NO    1    0    30.01
+
+[ system ]
+N2 + O2 <-> 2NO
+
+[ molecules ]
+ND      1
+N       333
+O       333
+NO      333
