@@ -30,7 +30,7 @@ function pb!(r, box)
     r = SVector{3}(x, y, z)
 end
 
-function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp, thermo_couple)
+function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp)
     """
     Velocity-Verlet integrator scheme.
 
@@ -75,3 +75,59 @@ function integrator!(r, v, f, m, dt, eps, sig, cutoff, box_size, temp, thermo_co
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
     end # for loop
 end # function
+
+# TODO code in Langevin
+struct LangevinIntegrator{T}
+    bath_const::T
+end
+
+function apply_integrator(soa::StructArray, temp, dt, integrator::LangevinIntegrator)
+    b_propagator( soa, dt/2.0 ,n)               #! B kick half-step
+    #print("a: ")
+    a_propagator( dt/2.0, n, soa, boxSize )           #! A drift half-step
+    #print("o: ")
+    o_propagator( soa, dt, n, temp, integrator.bath_const )     #! O random velocities and friction step
+    a_propagator( dt/2.0, n, soa, boxSize )           #! A drift half-step
+#print("forces: ")
+    UpdateAllForces!(soa,intraFF,vdwTable,list,point,n,boxSize)
+
+    b_propagator( soa, dt/2.0 ,n )
+end
+
+" Implements the A propagator (drift)"
+function a_propagator( t::Real, n::Int64, soa, boxSize )
+    # in: t,soa, boxSize
+    # t is typically timestep / 2
+
+    r = Vector{MVector{3,Float64}}(undef, n)
+    @inbounds for i=1:n
+        r[i] = soa.r[i] + 0.5 * soa.r[i] * t
+    end
+    pbc!(soa,r,n, boxSize)
+end
+
+" Update Velocity "
+function b_propagator(soa,t,n )
+
+    @inbounds for i=1:n
+        soa.v[i] = soa.v[i] + soa.f[i] * t
+    end
+end # b_propagator
+
+function o_propagator(soa,t::Float64,n::Int64, temperature::Float64,gamma=2.0)
+    # in: soa, t, n, gamma, temperature
+    # local: c1, c2, c3, c4  # Taylor series coefficients
+
+    c1 = 2.0; c2 = -2.0; c3 = 4.0/3.0; c4 = -2.0/3.0
+    x = gamma * t       # gamma is the friction coefficient
+    if ( x > 0.0001 )  # Use formula
+        c = 1 - exp( -2.0 * x)
+    else # Use Taylor expansion for low x
+        c = x * ( c1 + x * ( c2 + x * ( c3 + x * c4 ) ) )
+    end
+    c = sqrt( c )
+    @inbounds for i = 1:n
+        soa.v[i] = exp(-x) * soa.v[i] + c * rand(Normal(0.0, sqrt(temperature)), 3)
+    end
+
+end # o_propagator

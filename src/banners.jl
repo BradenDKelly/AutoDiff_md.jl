@@ -2,7 +2,7 @@ export
     Logo,
     Completion,
     PrintLine
-    
+
 function PrintLine(s::String, n::Int64) # handy tool for outputting lines
     println(repeat(s, n)) # prints n copies of whatever s is.
 end
@@ -14,7 +14,7 @@ function Logo()
     println("                   Code Version: Development (0.0)                ")
     println("                      Julia version 1.4.0                         ")
     println("                     Written by Braden Kelly                      ")
-    println("                          May, 2020                             ")
+    println("                        January, 2021                             ")
     println("                               .                                  ")
     println("                               .                                  ")
     println("                               .                                  ")
@@ -36,7 +36,7 @@ function Completion()
     println("                   Code Version: Development (-1.0)               ")
     println("                      Julia version 1.4.0                         ")
     println("                     Written by Braden Kelly                      ")
-    println("                          April, 2020                             ")
+    println("                        January, 2021                             ")
     println("                               .                                  ")
     println("                               .                                  ")
     println("                               .                                  ")

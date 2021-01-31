@@ -23,6 +23,7 @@ include("energies.jl")
 include("forces.jl")
 include("integrators.jl")
 include("io_data.jl")
+include("neighbor_lists.jl")
 include("utility_functions.jl")
 include("structs.jl") # needs to come before setup for dependency reasons
 include("setup.jl")

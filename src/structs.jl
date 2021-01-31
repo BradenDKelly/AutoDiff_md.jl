@@ -4,6 +4,7 @@ export
     MolTypes,
     Numbers,
     Simulation,
+    SimulationArrays,
     Tables,
     Molecule,
     Defaults,
@@ -44,6 +45,9 @@ end
 
 #include("constraints.jl")
 abstract type ForceField end
+abstract type Thermostat end
+abstract type Barostat end
+abstract type NeighborList end
 abstract type Gromacs <: ForceField end
 
 abstract type GAFF <: ForceField end
@@ -224,9 +228,9 @@ struct FFParameters <: Gromacs
     #molName2Num::Dict{String,Int64}
     #FFParameters()=new() # dummy initializer, necessary so I can define topology = FFParameters()
 end
-mutable struct XYZ <: FieldVector{3, Float64}
-    @xyz
-end
+# mutable struct XYZ <: FieldVector{3, Float64}
+#     @xyz
+# end
 
 # struct BodyFixed{T, I}
 #     r::Vector{SVector{3,T}}
@@ -360,13 +364,17 @@ mutable struct Tables #{T<:Vector} #<: ForceField
     end
 end
 
-mutable struct Simulation
+mutable struct SimulationArrays
     atom_arrays::StructArray
     molecule_arrays::StructArray
     intraFF::IntraForceField
     vdwTable::Tables
     nonbonded_matrix::Array
     scaled_pairs::Vector
+    numbers::Numbers
+    thermostat::Thermostat
+    verlet_point::Array
+    verlet_list::Array
 end
 """
 function Tables(a::Vector{T}, b::Vector{T}) where T

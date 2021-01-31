@@ -516,6 +516,8 @@ function MakeAtomArrays(systemTop::FFParameters,
     atom_arrays = StructArray(pArray)
     println(pArray[end].molNum, mcount)
     molecule_arrays = StructArray(molTracker)
+
+    @assert isapprox(sum(atom_arrays.qq[:]), 0.0, atol=1e-5)
     return  atom_arrays, molecule_arrays
 end # MakeAtomArrays
 ################################################################################

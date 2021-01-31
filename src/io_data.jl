@@ -130,7 +130,7 @@ function Read_gromacs(input)
             end
             if i > 5 && box && length(split(line)) == 3
                 lin = split(line)
-                println(line)
+                # println(line)
                 box1 = parse(Float64, strip(lin[1]))
                 box = false
             end
@@ -157,7 +157,7 @@ function PrintPDB_argon(r::Vector, boxSize, step=1, filename="pdbOutput")
 
             line = @sprintf("%-6s %4d %3s %4s %5d %3s %7.3f %7.3f %7.3f %5.2f %5.2f \n",
             "ATOM",i, atomName, molName, i, " ", 10.0 * coord[1],
-            10.0 * coord[2],10.0 * coord[3], 1.00, 0.00   )
+            10.0 * coord[2], 10.0 * coord[3], 1.00, 0.00   )
             write(file,line)
         end
     end

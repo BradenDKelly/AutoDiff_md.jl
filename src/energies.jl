@@ -1,12 +1,92 @@
 export
     pair_energy,
     total_energy
+    
+include("structs.jl")
+
+@inline function lj_atom_pair_energy(r1::SVector{3}, r2::SVector{3},
+                            ϵ::Real, σ::Real,
+                            cutoff::Real, box_size::SVector{3},
+                            shifted_potential::Real=0.0)
+    """
+    Calculates the Lennard Jones energy between two atoms
+
+    Parameters
+    ----------
+    r1 : SVector{3}
+        coordinate of atom 1
+    r2 : SVector{3}
+        coordinate of atom 2
+    ϵ : Scalar
+        post-mixing rule epsilon parameter of atom pair
+    σ : Vector
+        post-mixing rule sigma parameter of atom pair
+    cutoff : Float
+        interaction cutoff distance
+    box_size : SVector{3}
+        vector with box length in the x, y, z direction
+    shifted_potential : Float
+        cut and shift potential
+
+    Returns
+    ---------
+    e : float
+        potential energy between atoms 1 and atom 2
+    """
+    # diff = SVector{3}(0.0,0.0,0.0)
+    # apply mirror image separation
+    #@inbounds for i=1:
+    #        diff = @set diff[i] = vector1D(r1[i], r2[i], box_size[i])
+    #end
+    dx = vector1D(r1[1], r2[1], box_size[1])
+    dy = vector1D(r1[2], r2[2], box_size[2])
+    dz = vector1D(r1[3], r2[3], box_size[3])
+
+    rij_sq = dx * dx + dy * dy + dz * dz
+    #rij_sq = diff[1] * diff[1] + diff[2] * diff[2] + diff[3] * diff[3]
+
+    # TODO precalculate squared cutoff
+    if  rij_sq > cutoff^2 #rij_sq > box_size[1] / 2
+        return 0.0 * rij_sq
+    end
+
+    # TODO precalculate squared sigma
+    sr2 = σ^2 / rij_sq
+    sr6 = sr2^3
+    sr12 = sr6^2
+    # to match allen & Tildesly I add the cut potential manually
+    # do not actually need 4 * (-0.004079222784000001)  otherwise
+    # current shift is for r=1.2 nm
+    e = 4 * ϵ * (sr12 - sr6)- shifted_potential #(-0.002078435714914992) #- 4 * (-0.004079222784000001)
+    return e
+    end
+
+@inline function lj_molec_pair_energy()
+    println("In progress")
+end
+
+@inline function lj_molec_vs_system_energy()
+    println("In progress")
+
+end
+
+@inline function total_lj_energy(vdwTable::Tables,
+                                cutoff::Float64,
+                                boxSize::SVector{3,Float64},
+                                atom_arrays::StructArray,
+                                molecule_arrays::StructArray)
+    """ Total LJ energy of system"""
+
+end
+
 
 @inline function pair_energy(r1::SVector{3}, r2::SVector{3},
                             eps1::Real, eps2::Real,
                             sig1::Real, sig2::Real,
                             cutoff::Real, box_size::SVector{3})
     """
+    NOTE: OBSOLETE FUNCTION:
+
     Calculates the Lennard Jones energy between two atoms
 
     Parameters
