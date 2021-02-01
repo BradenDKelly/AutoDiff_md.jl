@@ -4,6 +4,8 @@ export
     MolTypes,
     Numbers,
     Simulation,
+    SimulationContext,
+    SimulationControls,
     SimulationArrays,
     Tables,
     Molecule,
@@ -12,6 +14,9 @@ export
     Atoms,
     Bonds,
     Pairs
+
+include("types.jl")
+include("integrators.jl")
 
 macro def(name, definition)
     return quote
@@ -42,25 +47,6 @@ end
   y::Float64
   z::Float64
 end
-
-#include("constraints.jl")
-abstract type ForceField end
-abstract type Thermostat end
-abstract type Barostat end
-abstract type NeighborList end
-abstract type Gromacs <: ForceField end
-
-abstract type GAFF <: ForceField end
-
-
-abstract type AngleType <: ForceField end
-abstract type DihedralType <: ForceField end
-
-abstract type AtomInfo end
-
-
-abstract type TypeStructArray end
-#analyze_malloc(raw"C:\Users\Zarathustra\Documents\JuliaScripts")
 
 ################################################################################
 #
@@ -296,14 +282,14 @@ end
 # end
 
 """Atomic properties like number, mass, coords, charge, molecule_parent"""
-struct ParticleAtom{I,F} <: TypeStructArray
-    molNum::I
-    molType::I
-    atype::I
-    mass::F
-    r::SVector{3,F}
-    v::SVector{3,F}
-    f::SVector{3,F}
+struct ParticleAtom <: TypeStructArray
+    molNum::Int64
+    molType::Int64
+    atype::Int64
+    mass::Float64
+    r::SVector{3,Float64}
+    v::SVector{3,Float64}
+    f::SVector{3,Float64}
     qq::Float64
 end
 
@@ -329,13 +315,13 @@ mutable struct ThermoProperties{F}
     PE::F
 end
 
-struct Molecule{I, F}
-    firstAtom::I
-    lastAtom::I
-    COM::SVector{3,F}
-    quat::SVector{4,F}
-    mass::F
-    molType::I
+struct Molecule
+    firstAtom::Int64
+    lastAtom::Int64
+    COM::SVector{3,Float64}
+    quat::SVector{4,Float64}
+    mass::Float64
+    molType::Int64
 end
 
 struct OverFlowTable{T}
@@ -364,18 +350,38 @@ mutable struct Tables #{T<:Vector} #<: ForceField
     end
 end
 
-mutable struct SimulationArrays
-    atom_arrays::StructArray
-    molecule_arrays::StructArray
+mutable struct SimulationArrays{S<:StructArray, T<:StructArray}
+    atom_arrays::S
+    molecule_arrays::T
     intraFF::IntraForceField
     vdwTable::Tables
     nonbonded_matrix::Array
     scaled_pairs::Vector
     numbers::Numbers
-    thermostat::Thermostat
-    verlet_point::Array
-    verlet_list::Array
+    neighborlist::NeighborList
 end
+
+struct SimulationContext
+    topology::FFParameters
+    universe::Topology
+    molecules::Vector{Topology}
+end
+
+struct SimulationControls
+    integrator::VelocityVerlet
+    thermostat::Thermostat
+    barostat::Barostat
+end
+
+mutable struct Samples
+    kinetic_temperature::Array
+    virial_pressure::Array
+    KE::Array
+    PE::Array
+    total_energy::Array
+    iter::Int
+end
+
 """
 function Tables(a::Vector{T}, b::Vector{T}) where T
     e = [sqrt(a[i]*a[j]) for i=1:length(a), j=1:length(a)]

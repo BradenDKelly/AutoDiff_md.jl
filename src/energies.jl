@@ -1,7 +1,7 @@
 export
     pair_energy,
     total_energy
-    
+
 include("structs.jl")
 
 @inline function lj_atom_pair_energy(r1::SVector{3}, r2::SVector{3},
@@ -70,15 +70,62 @@ end
 
 end
 
-@inline function total_lj_energy(vdwTable::Tables,
-                                cutoff::Float64,
-                                boxSize::SVector{3,Float64},
-                                atom_arrays::StructArray,
-                                molecule_arrays::StructArray)
-    """ Total LJ energy of system"""
+@inline function total_lj_energy(
+    simulation_arrays::SimulationArrays,
+    cutoff::T,
+    box_size::SVector) where T
+    """
+    Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
+    Parameters
+    ----------
+    simulation_array : SimulationArray
+        atom_arrays::StructArray
+            molNum::I
+            molType::I
+            atype::I
+            mass::F
+            r::SVector{3,F}
+            v::SVector{3,F}
+            f::SVector{3,F}
+            qq::Float64
+    cutoff : Float
+        interaction cutoff
+    box_size : SVector{3}
+        vector with box length in the x, y, z direction
+
+    Returns
+    ---------
+    forces : Vector{SVector{3}}
+        Vector of forces, where each element is the x, y, z forces on that atom
+    """
+    n = length(simulation_arrays.atom_arrays.r[:])
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
+    energetics = [0.0 for i=1:n]
+    energy = 0.0
+    for i = 1:(n-1)
+        ti = simulation_arrays.atom_arrays.atype[i]
+        for j = (i+1):n
+            tj = simulation_arrays.atom_arrays.atype[j]
+            ener = lj_atom_pair_energy(
+                simulation_arrays.atom_arrays.r[i],
+                simulation_arrays.atom_arrays.r[j],
+                simulation_arrays.vdwTable.ϵᵢⱼ[ti, tj],
+                simulation_arrays.vdwTable.σᵢⱼ[ti, tj],
+                cutoff,
+                box_size
+                )
+            energy += ener
+            energetics[i] += ener
+        end
+    end
+    return energy, energetics
 end
 
+function total_energy(simulation_arrays::SimulationArrays, cutoff, box_size)
+    """total energy of the system"""
+    return total_lj_energy(simulation_arrays, cutoff, box_size)
+end
 
 @inline function pair_energy(r1::SVector{3}, r2::SVector{3},
                             eps1::Real, eps2::Real,

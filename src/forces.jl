@@ -3,12 +3,138 @@
 #using StaticArrays
 export
     grad,
+    lj_grad,
+    total_lj_force,
     pair_force,
     numerical_total_force,
     analytical_total_force,
     total_force
 
 include("energies.jl")
+
+grad(x,y, e1, e2, s1, s2, c, b) = -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
+""" Calculates the force between two atoms using ForwardDiff"""
+lj_grad(x,y, e, s, c, b) = -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b,), x)
+""" Calculates the force between two atoms using ForwardDiff"""
+lj_grad(x,y, e, s, c, b, shift) = -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b, shift), x)
+""" Calculates the force between two atoms using ForwardDiff"""
+
+@inline function total_lj_force(
+    simulation_arrays::SimulationArrays,
+    cutoff::T,
+    box_size::SVector) where T
+    """
+    Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+
+    Parameters
+    ----------
+    simulation_array : SimulationArray
+        atom_arrays::StructArray
+            molNum::I
+            molType::I
+            atype::I
+            mass::F
+            r::SVector{3,F}
+            v::SVector{3,F}
+            f::SVector{3,F}
+            qq::Float64
+    cutoff : Float
+        interaction cutoff
+    box_size : SVector{3}
+        vector with box length in the x, y, z direction
+
+    Returns
+    ---------
+    forces : Vector{SVector{3}}
+        Vector of forces, where each element is the x, y, z forces on that atom
+    """
+    n::Int64 = length(simulation_arrays.atom_arrays.r[:])
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
+    ti::Int64=0
+    tj::Int64=0
+
+    for i = 1:(n-1)
+        ti = simulation_arrays.atom_arrays.atype[i]
+        for j = (i+1):n
+            tj = simulation_arrays.atom_arrays.atype[j]
+            dE_dr = lj_grad(
+                simulation_arrays.atom_arrays.r[i],
+                simulation_arrays.atom_arrays.r[j],
+                simulation_arrays.vdwTable.ϵᵢⱼ[ti, tj],
+                simulation_arrays.vdwTable.σᵢⱼ[ti, tj],
+                cutoff,
+                box_size
+                )
+            forces[i] = forces[i] + dE_dr
+            forces[j] = forces[j] - dE_dr
+        end
+    end
+    return forces
+end
+
+@inline function total_lj_force(
+    r::Vector,
+    atype::Vector,
+    vdwTable::Tables,
+    cutoff::T,
+    box_size::SVector) where T
+    """
+    Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+
+    Parameters
+    ----------
+    simulation_array : SimulationArray
+        atom_arrays::StructArray
+            molNum::I
+            molType::I
+            atype::I
+            mass::F
+            r::SVector{3,F}
+            v::SVector{3,F}
+            f::SVector{3,F}
+            qq::Float64
+    cutoff : Float
+        interaction cutoff
+    box_size : SVector{3}
+        vector with box length in the x, y, z direction
+
+    Returns
+    ---------
+    forces : Vector{SVector{3}}
+        Vector of forces, where each element is the x, y, z forces on that atom
+    """
+    n::Int64 = length(r)
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
+    ti::Int64=0
+    tj::Int64=0
+
+    for i = 1:(n-1)
+        ti = atype[i]
+        for j = (i+1):n
+            tj = atype[j]
+            dE_dr = lj_grad(
+                r[i],
+                r[j],
+                vdwTable.ϵᵢⱼ[ti, tj],
+                vdwTable.σᵢⱼ[ti, tj],
+                cutoff,
+                box_size
+                )
+            forces[i] = forces[i] + dE_dr
+            forces[j] = forces[j] - dE_dr
+        end
+    end
+    return forces
+end
+
+function analytical_total_force(simulation_arrays::SimulationArrays, cutoff, box_size)
+    """total energy of the system"""
+    return total_lj_force(simulation_arrays, cutoff, box_size)
+end
+function analytical_total_force(r::Vector, atype::Vector, vdwTable::Tables, cutoff, box_size)
+    """total energy of the system"""
+    return total_lj_force(r, atype, vdwTable, cutoff, box_size)
+end
 
 @inline function pair_force(r1::SVector{3, Float64}, r2::SVector{3, Float64}, box_size)
     """
@@ -106,11 +232,6 @@ function numerical_total_force(r::Vector{SVector{3, Float64}}, box_size::SVector
 end
 
 # analytical_force = x -> ForwardDiff.gradient(pair_energy, x, y, box_size)
-
-grad(x,y, e1, e2, s1, s2, c, b) = -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
-""" Calculates the force between two atoms using ForwardDiff"""
-
-
 function analytical_total_force(r::Vector{SVector{3, Float64}}, eps::Vector,
                                 sig::Vector, cutoff::Real, box_size::SVector{3,Float64})
     """
