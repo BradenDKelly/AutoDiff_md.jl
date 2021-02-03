@@ -1,8 +1,5 @@
 #using StaticArrays
-export
-    initial_velocity,
-    initCubicGrid,
-    velocity
+export initial_velocity, initCubicGrid, velocity
 
 const DefaultFloat = Float64
 
@@ -25,11 +22,11 @@ function initial_velocity(m::Vector, v::Vector)
     """
     n = length(v)
     v = [SVector{3,Float64}(v[i]...) for i = 1:length(v)]
-    sumv = sum(m .* v)./n
-    v = [(v[i] .- sumv ./ m[i])  for i=1:n]
+    sumv = sum(m .* v) ./ n
+    v = [(v[i] .- sumv ./ m[i]) for i = 1:n]
 
-    sumv = sum(m .* v)./n
-    v = [(v[i] .- sumv ./ m[i])  for i=1:n]
+    sumv = sum(m .* v) ./ n
+    v = [(v[i] .- sumv ./ m[i]) for i = 1:n]
     return v
 end
 
@@ -76,18 +73,19 @@ function initCubicGrid(n::Int, rho::Real)
     return [
         SVector{3}(coords[1, i], coords[2, i], coords[3, i])
         for i = 1:size(coords, 2)
-    ], L
+    ],
+    L
 end #function
 
 """
 Generate a random velocity from the Maxwell-Boltzmann distribution.
 """
-function velocity(T::Type, mass::Real, temp::Real; dims::Integer=3)
-    return SVector([maxwellboltzmann(T, mass, temp) for i in 1:dims]...)
+function velocity(T::Type, mass::Real, temp::Real; dims::Integer = 3)
+    return SVector([maxwellboltzmann(T, mass, temp) for i = 1:dims]...)
 end
 
-function velocity(mass::Real, temp::Real; dims::Integer=3)
-    return velocity(DefaultFloat, mass, temp, dims=dims)
+function velocity(mass::Real, temp::Real; dims::Integer = 3)
+    return velocity(DefaultFloat, mass, temp, dims = dims)
 end
 
 """

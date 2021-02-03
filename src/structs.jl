@@ -1,5 +1,4 @@
-export
-    BodyFixed,
+export BodyFixed,
     FFParameters,
     MolTypes,
     Numbers,
@@ -27,8 +26,8 @@ macro def(name, definition)
 end
 
 @def aij begin
-  ai::Int64
-  aj::Int64
+    ai::Int64
+    aj::Int64
 
 end
 
@@ -43,9 +42,9 @@ end
 end
 
 @def xyz begin
-  x::Float64
-  y::Float64
-  z::Float64
+    x::Float64
+    y::Float64
+    z::Float64
 end
 
 ################################################################################
@@ -63,8 +62,13 @@ struct Defaults <: Gromacs
     fudgeQQ::Float64
 end
 # Constructor for Defaults
-Defaults( nbfunc::Int64,combRule::Int64,genPairs::String,fudgeLJ::Float64,
-    fudgeQQ::Float64) = Defaults(nbfunc,combRule,genPairs,fudgeLJ,fudgeQQ)
+Defaults(
+    nbfunc::Int64,
+    combRule::Int64,
+    genPairs::String,
+    fudgeLJ::Float64,
+    fudgeQQ::Float64,
+) = Defaults(nbfunc, combRule, genPairs, fudgeLJ, fudgeQQ)
 
 #=
 Gromacs Style
@@ -151,16 +155,22 @@ mutable struct Angles{T<:AngleType}
     params::T
 end
 # constructor for OPLS angles (incomplete)
-Angles(ai::Int64,aj::Int64,ak::Int64)=Angles( ai,aj,ak,OPLSAngles() )
+Angles(ai::Int64, aj::Int64, ak::Int64) = Angles(ai, aj, ak, OPLSAngles())
 # constructor for GAFF angles
-Angles(ai::Int64,aj::Int64,ak::Int64,funct::Int64,theta::Float64,
-    kparam::Float64)=Angles( ai,aj,ak,GAFFAngles(funct,theta,kparam) )
+Angles(
+    ai::Int64,
+    aj::Int64,
+    ak::Int64,
+    funct::Int64,
+    theta::Float64,
+    kparam::Float64,
+) = Angles(ai, aj, ak, GAFFAngles(funct, theta, kparam))
 # constructor for CHARMM angles (incomplete)
-Angles(ai::Int64,aj::Int64,ak::Int64)=Angles( ai,aj,ak,CHARMMAngles() )
+Angles(ai::Int64, aj::Int64, ak::Int64) = Angles(ai, aj, ak, CHARMMAngles())
 # constructor for TrAPPE angles (incomplete)
-Angles(ai::Int64,aj::Int64,ak::Int64)=Angles( ai,aj,ak,TrAPPEAngles() )
+Angles(ai::Int64, aj::Int64, ak::Int64) = Angles(ai, aj, ak, TrAPPEAngles())
 # constructor for AMBER angles (incomplete)
-Angles(ai::Int64,aj::Int64,ak::Int64)=Angles( ai,aj,ak,AMBERAngles() )
+Angles(ai::Int64, aj::Int64, ak::Int64) = Angles(ai, aj, ak, AMBERAngles())
 ################################################################################
 #
 #                                DIHEDRALS
@@ -189,11 +199,25 @@ mutable struct Dihedrals{T<:DihedralType}
     params::T
 end
 # Improper Dihedral constructor (GAFF)
-Dihedrals(ai::Int64,aj::Int64,ak::Int64,al::Int64,funct::Int64,
-        kparam::Vector{Float64}) = Dihedrals(ai,aj,ak,al,funct,Improper(kparam))
+Dihedrals(
+    ai::Int64,
+    aj::Int64,
+    ak::Int64,
+    al::Int64,
+    funct::Int64,
+    kparam::Vector{Float64},
+) = Dihedrals(ai, aj, ak, al, funct, Improper(kparam))
 # Proper Dihedral constructor (GAFF)
-Dihedrals(ai::Int64,aj::Int64,ak::Int64,al::Int64,funct::Int64, phase::Float64,
-        kd::Float64,pn::Int64) = Dihedrals(ai,aj,ak,al,funct,Proper(phase,kd,pn))
+Dihedrals(
+    ai::Int64,
+    aj::Int64,
+    ak::Int64,
+    al::Int64,
+    funct::Int64,
+    phase::Float64,
+    kd::Float64,
+    pn::Int64,
+) = Dihedrals(ai, aj, ak, al, funct, Proper(phase, kd, pn))
 
 struct MolParam <: ForceField
     name::AbstractString
@@ -350,7 +374,7 @@ mutable struct Tables #{T<:Vector} #<: ForceField
     end
 end
 
-mutable struct SimulationArrays{S<:StructArray, T<:StructArray}
+mutable struct SimulationArrays{S<:StructArray,T<:StructArray}
     atom_arrays::S
     molecule_arrays::T
     intraFF::IntraForceField

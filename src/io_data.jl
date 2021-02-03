@@ -1,7 +1,4 @@
-export
-    Read_gromacs,
-    ReadCNF,
-    PrintPDB_argon
+export Read_gromacs, ReadCNF, PrintPDB_argon
 
 function ReadCNF(input)
     """
@@ -125,7 +122,7 @@ function Read_gromacs(input)
                     ],
                 )
             end # if
-            if occursin("box",lowercase(line))
+            if occursin("box", lowercase(line))
                 box = true
             end
             if i > 5 && box && length(split(line)) == 3
@@ -142,23 +139,39 @@ function Read_gromacs(input)
     return r, v, box1
 end
 
-function PrintPDB_argon(r::Vector, boxSize, step=1, filename="pdbOutput")
+function PrintPDB_argon(r::Vector, boxSize, step = 1, filename = "pdbOutput")
     """ Print a pdb file for this snapshot. This is for monatomic system"""
     open(filename * "_" * string(step) * ".pdb", "w") do file
 
-        line = @sprintf("%-7s %7.3f %7.3f %7.3f %30s \n","CRYST1", 10.0 * boxSize[1],
-               10.0 * boxSize[2], 10.0 * boxSize[3], "90.00  90.00  90.00 P 1           1")
-        write(file,line)
+        line = @sprintf(
+            "%-7s %7.3f %7.3f %7.3f %30s \n",
+            "CRYST1",
+            10.0 * boxSize[1],
+            10.0 * boxSize[2],
+            10.0 * boxSize[3],
+            "90.00  90.00  90.00 P 1           1"
+        )
+        write(file, line)
 
         for (i, coord) in enumerate(r)
-
             atomName = "Ar" #systemTop.molParams[soa.molType[i]].atoms[soa.atype[i]].atomnm
             molName = "Ar" #systemTop.molParams[soa.molType[i]].atoms[soa.atype[i]].resnm
 
-            line = @sprintf("%-6s %4d %3s %4s %5d %3s %7.3f %7.3f %7.3f %5.2f %5.2f \n",
-            "ATOM",i, atomName, molName, i, " ", 10.0 * coord[1],
-            10.0 * coord[2], 10.0 * coord[3], 1.00, 0.00   )
-            write(file,line)
+            line = @sprintf(
+                "%-6s %4d %3s %4s %5d %3s %7.3f %7.3f %7.3f %5.2f %5.2f \n",
+                "ATOM",
+                i,
+                atomName,
+                molName,
+                i,
+                " ",
+                10.0 * coord[1],
+                10.0 * coord[2],
+                10.0 * coord[3],
+                1.00,
+                0.00
+            )
+            write(file, line)
         end
     end
 end

@@ -1,5 +1,4 @@
-export
-    volume_change_lj_MC!
+export volume_change_lj_MC!
 
 function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
     """Changes the volume of the simulation box using stat mech
@@ -38,7 +37,7 @@ function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
     change_vol = (rand() - 0.5) * vmax # note vmax is actually ln(vmax)
     ln_vol_new = log(volume_old) + change_vol
     volume_new = exp(ln_vol_new)
-    L_new = volume_new^(1/3)
+    L_new = volume_new^(1 / 3)
     box_size = SVector(L_new, L_new, L_new)
     cutoff = min(cutoff, L_new / 2)
     r = r .* (L_new / L_old)
@@ -47,8 +46,11 @@ function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
 
     du = (energy_new - energy_old)
     dv = (volume_new - volume_old)
-    test = -1 / (0.00831446 * temp) * ( du + press * dv -
-            (n+1) * 0.00831446 * temp * log(volume_new / volume_old))
+    test =
+        -1 / (0.00831446 * temp) * (
+            du + press * dv -
+            (n + 1) * 0.00831446 * temp * log(volume_new / volume_old)
+        )
 
     # test if we keep this volume or the original volume
     if rand() > exp(test)
@@ -66,8 +68,8 @@ function volume_change_lj_MC!(
     box_size,
     cutoff,
     temp,
-    barostat::MonteCarloBarostat
-    )
+    barostat::MonteCarloBarostat,
+)
     """Changes the volume of the simulation box using stat mech
     Parameters
     ----------
@@ -100,21 +102,26 @@ function volume_change_lj_MC!(
     change_vol = (rand() - 0.5) * barostat.vmax # note vmax is actually ln(vmax)
     ln_vol_new = log(volume_old) + change_vol
     volume_new = exp(ln_vol_new)
-    L_new = volume_new^(1/3)
+    L_new = volume_new^(1 / 3)
     box_size = SVector(L_new, L_new, L_new)
     cutoff = min(cutoff, L_new / 2)
-    simulation_arrays.atom_arrays.r[:] = simulation_arrays.atom_arrays.r[:] .* (L_new / L_old)
+    simulation_arrays.atom_arrays.r[:] =
+        simulation_arrays.atom_arrays.r[:] .* (L_new / L_old)
     # calculate energy of system with new volume
     energy_new = total_energy(simulation_arrays, cutoff, box_size)[1]
 
     du = (energy_new - energy_old)
     dv = (volume_new - volume_old)
-    test = -1 / (0.00831446 * temp) * ( du + barostat.set_press * dv -
-            (n+1) * 0.00831446 * temp * log(volume_new / volume_old))
+    test =
+        -1 / (0.00831446 * temp) * (
+            du + barostat.set_press * dv -
+            (n + 1) * 0.00831446 * temp * log(volume_new / volume_old)
+        )
 
     # test if we keep this volume or the original volume
     if rand() > exp(test)
-        simulation_arrays.atom_arrays.r[:] = simulation_arrays.atom_arrays.r[:] .* (L_old / L_new)
+        simulation_arrays.atom_arrays.r[:] =
+            simulation_arrays.atom_arrays.r[:] .* (L_old / L_new)
         box_size = SVector(L_old, L_old, L_old)
     else
         barostat.vol_accept += 1
@@ -123,4 +130,5 @@ function volume_change_lj_MC!(
     return simulation_arrays.atom_arrays.r[:], box_size, cutoff
 
     # TODO update tail corrections
+    # TODO add module for optimizing vmax
 end

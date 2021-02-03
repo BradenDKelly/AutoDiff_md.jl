@@ -1,4 +1,3 @@
-#using StaticArrays
 export simulate!
 
 include("forces.jl")
@@ -12,7 +11,7 @@ function simulate!(
     box_size::SVector,
     nsteps,
     cutoff,
-    props
+    props,
 )
     """
     The main loop for generating the molecular dynamics trajectory
@@ -65,15 +64,16 @@ function simulate!(
     return sample results
     """
     n = length(simulation_arrays.atom_arrays.r)
-    simulation_arrays.atom_arrays.v[:] =
-        [velocity(
+    simulation_arrays.atom_arrays.v[:] = [
+        velocity(
             simulation_arrays.atom_arrays.mass[i],
-            simulation_controls.thermostat.set_temp
-        ) for i=1:n]
+            simulation_controls.thermostat.set_temp,
+        ) for i = 1:n
+    ]
 
     simulation_arrays.atom_arrays.v[:] = initial_velocity(
         simulation_arrays.atom_arrays.mass,
-        simulation_arrays.atom_arrays.v
+        simulation_arrays.atom_arrays.v,
     )
     vol = volume(box_size)
     temp_stat = []
@@ -86,6 +86,7 @@ function simulate!(
     for i = 1:nsteps
 
         # Calculate forces on all atoms
+        # TODO update force in-place
         f = analytical_total_force(simulation_arrays, cutoff, box_size)
         #f = analytical_total_force(r, atype, vdwTable, cutoff, box_size)
         simulation_arrays.atom_arrays.f[:] = f
@@ -94,14 +95,14 @@ function simulate!(
             simulation_arrays,
             simulation_controls.integrator,
             cutoff,
-            box_size
+            box_size,
         )
         # thermostat
         apply_thermostat!(
             simulation_arrays.atom_arrays.v,
             simulation_arrays.atom_arrays.mass,
             simulation_controls.integrator.dt,
-            simulation_controls.thermostat
+            simulation_controls.thermostat,
         )
 
         # barostat
@@ -114,13 +115,15 @@ function simulate!(
                     simulation_controls.barostat,
                     box_size,
                     cutoff,
-                    simulation_controls.thermostat.set_temp
+                    simulation_controls.thermostat.set_temp,
                 )
                 simulation_arrays.atom_arrays.r[:] = r
                 vol = volume(box_size)
             end
         end
         # Sample some things
+        # TODO tidy this little gong-show up.
+        # make struct for holding properties, make module for calling sampling
         if i % 100 == 0
             v = simulation_arrays.atom_arrays.v[:]
             m = simulation_arrays.atom_arrays.mass[:]
@@ -131,10 +134,10 @@ function simulate!(
             push!(temp_stat, tmp)
             tot_vir = virial(simulation_arrays, cutoff, box_size)
             press_f = press_full(tot_vir, n, vol, tmp)
-            #PE = total_energy(r, 0.9906, 0.3405, cutoff, box_size)[1]
+            PE = total_energy(simulation_arrays, cutoff, box_size)[1]
             push!(press_stat, press_f)
-            #push!(ener_stat, KE + PE)
-            #push!(PE_stat, PE)
+            push!(ener_stat, KE + PE)
+            push!(PE_stat, PE)
             if i % 1000 == 0
                 @printf(
                     "Current step is %d, temp is %.3f, KE is %.3f, press is %.3f, box is %.3f\n",
@@ -174,6 +177,7 @@ function simulate!(
         " std is: ",
         std(ener_stat) / n,
     )
+    # TODO make module for outputting plots, if desired
     display(plot(
         1:length(temp_stat),
         temp_stat,
@@ -205,6 +209,7 @@ function simulate!(
     #display(plot3d(r, xlim = (0, plim), ylim = (0, plim), zlim = (0, plim),title = "Simulation",marker = 2))
 end
 
+# TODO contemplate discarding array style function
 function simulate!(
     r,
     v,

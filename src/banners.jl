@@ -1,7 +1,4 @@
-export
-    Logo,
-    Completion,
-    PrintLine
+export Logo, Completion, PrintLine
 
 function PrintLine(s::String, n::Int64) # handy tool for outputting lines
     println(repeat(s, n)) # prints n copies of whatever s is.

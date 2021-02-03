@@ -104,6 +104,7 @@ struct LangevinIntegrator{T}
     bath_const::T
 end
 
+# TODO get langvevin integrator/thermostat working for simulation_arrays
 # function apply_integrator!(
 #     soa::StructArray,
 #     temp,

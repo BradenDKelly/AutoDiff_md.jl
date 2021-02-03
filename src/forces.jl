@@ -1,8 +1,4 @@
-#using ForwardDiff
-#using Setfield
-#using StaticArrays
-export
-    grad,
+export grad,
     lj_grad,
     total_lj_force,
     pair_force,
@@ -12,17 +8,21 @@ export
 
 include("energies.jl")
 
-grad(x,y, e1, e2, s1, s2, c, b) = -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
+grad(x, y, e1, e2, s1, s2, c, b) =
+    -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
 """ Calculates the force between two atoms using ForwardDiff"""
-lj_grad(x,y, e, s, c, b) = -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b,), x)
+lj_grad(x, y, e, s, c, b) =
+    -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b), x)
 """ Calculates the force between two atoms using ForwardDiff"""
-lj_grad(x,y, e, s, c, b, shift) = -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b, shift), x)
+lj_grad(x, y, e, s, c, b, shift) =
+    -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b, shift), x)
 """ Calculates the force between two atoms using ForwardDiff"""
 
 @inline function total_lj_force(
     simulation_arrays::SimulationArrays,
     cutoff::T,
-    box_size::SVector) where T
+    box_size::SVector,
+) where {T}
     """
     Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -49,9 +49,9 @@ lj_grad(x,y, e, s, c, b, shift) = -ForwardDiff.gradient(x -> lj_atom_pair_energy
         Vector of forces, where each element is the x, y, z forces on that atom
     """
     n::Int64 = length(simulation_arrays.atom_arrays.r[:])
-    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
-    ti::Int64=0
-    tj::Int64=0
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
+    ti::Int64 = 0
+    tj::Int64 = 0
 
     for i = 1:(n-1)
         ti = simulation_arrays.atom_arrays.atype[i]
@@ -63,8 +63,8 @@ lj_grad(x,y, e, s, c, b, shift) = -ForwardDiff.gradient(x -> lj_atom_pair_energy
                 simulation_arrays.vdwTable.ϵᵢⱼ[ti, tj],
                 simulation_arrays.vdwTable.σᵢⱼ[ti, tj],
                 cutoff,
-                box_size
-                )
+                box_size,
+            )
             forces[i] = forces[i] + dE_dr
             forces[j] = forces[j] - dE_dr
         end
@@ -77,7 +77,8 @@ end
     atype::Vector,
     vdwTable::Tables,
     cutoff::T,
-    box_size::SVector) where T
+    box_size::SVector,
+) where {T}
     """
     Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -104,9 +105,9 @@ end
         Vector of forces, where each element is the x, y, z forces on that atom
     """
     n::Int64 = length(r)
-    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
-    ti::Int64=0
-    tj::Int64=0
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
+    ti::Int64 = 0
+    tj::Int64 = 0
 
     for i = 1:(n-1)
         ti = atype[i]
@@ -118,8 +119,8 @@ end
                 vdwTable.ϵᵢⱼ[ti, tj],
                 vdwTable.σᵢⱼ[ti, tj],
                 cutoff,
-                box_size
-                )
+                box_size,
+            )
             forces[i] = forces[i] + dE_dr
             forces[j] = forces[j] - dE_dr
         end
@@ -127,16 +128,30 @@ end
     return forces
 end
 
-function analytical_total_force(simulation_arrays::SimulationArrays, cutoff, box_size)
+function analytical_total_force(
+    simulation_arrays::SimulationArrays,
+    cutoff,
+    box_size,
+)
     """total energy of the system"""
     return total_lj_force(simulation_arrays, cutoff, box_size)
 end
-function analytical_total_force(r::Vector, atype::Vector, vdwTable::Tables, cutoff, box_size)
+function analytical_total_force(
+    r::Vector,
+    atype::Vector,
+    vdwTable::Tables,
+    cutoff,
+    box_size,
+)
     """total energy of the system"""
     return total_lj_force(r, atype, vdwTable, cutoff, box_size)
 end
 
-@inline function pair_force(r1::SVector{3, Float64}, r2::SVector{3, Float64}, box_size)
+@inline function pair_force(
+    r1::SVector{3,Float64},
+    r2::SVector{3,Float64},
+    box_size,
+)
     """
     Calculates the Lennard Jones Force between two atoms
 
@@ -160,19 +175,19 @@ end
     diff = SVector{3}(0.0, 0.0, 0.0)
 
     # apply mirror image separation
-    @inbounds for i=1:3
-            diff = @set diff[i] = vector1D(r1[i], r2[i], box_size[i])
-        end
+    @inbounds for i = 1:3
+        diff = @set diff[i] = vector1D(r1[i], r2[i], box_size[i])
+    end
 
-    rij_sq = diff[1]*diff[1] + diff[2]*diff[2] + diff[3]*diff[3]
+    rij_sq = diff[1] * diff[1] + diff[2] * diff[2] + diff[3] * diff[3]
 
-    if  rij_sq > box_size[1] / 2
+    if rij_sq > box_size[1] / 2
         return SVector{3}(0.0, 0.0, 0.0), SVector{3}(0.0, 0.0, 0.0)
     else
 
         sr2 = 1 / rij_sq #σ^2 / rij_sq
-        sr6 = sr2 ^ 3
-        sr12 = sr6 ^ 2
+        sr6 = sr2^3
+        sr12 = sr6^2
         f = (24 / rij_sq) * (2 * sr12 - sr6) # ((24 * ϵ) / rij_sq) * (2 * sr12 - sr6)
 
         dx = -f * diff[1]
@@ -188,7 +203,10 @@ end
 end
 
 
-function numerical_total_force(r::Vector{SVector{3, Float64}}, box_size::SVector{3,Float64})
+function numerical_total_force(
+    r::Vector{SVector{3,Float64}},
+    box_size::SVector{3,Float64},
+)
     """
     Calculates the Lennard Jones forces on all atoms using numerical derivatives
 
@@ -206,24 +224,33 @@ function numerical_total_force(r::Vector{SVector{3, Float64}}, box_size::SVector
     """
     n = length(r)
     dx = 1e-8
-    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
     for i = 1:(n-1)
         for j = (i+1):n
             rxp, rxm = deepcopy(r[i]), deepcopy(r[i])
             rxp = @set rxp[1] += dx
             rxm = @set rxm[1] -= dx
-            dE_dx = -( pair_energy(rxp, r[j], box_size) -
-                    pair_energy(rxm, r[j], box_size) ) / (2 * dx)
+            dE_dx =
+                -(
+                    pair_energy(rxp, r[j], box_size) -
+                    pair_energy(rxm, r[j], box_size)
+                ) / (2 * dx)
             rxp, rxm = deepcopy(r[i]), deepcopy(r[i])
             rxp = @set rxp[2] += dx
             rxm = @set rxm[2] -= dx
-            dE_dy = -( pair_energy(rxp, r[j], box_size) -
-                    pair_energy(rxm, r[j], box_size) ) / (2 * dx)
+            dE_dy =
+                -(
+                    pair_energy(rxp, r[j], box_size) -
+                    pair_energy(rxm, r[j], box_size)
+                ) / (2 * dx)
             rxp, rxm = deepcopy(r[i]), deepcopy(r[i])
             rxp = @set rxp[3] += dx
             rxm = @set rxm[3] -= dx
-            dE_dz = -( pair_energy(rxp, r[j], box_size) -
-                    pair_energy(rxm, r[j], box_size) ) / (2 * dx)
+            dE_dz =
+                -(
+                    pair_energy(rxp, r[j], box_size) -
+                    pair_energy(rxm, r[j], box_size)
+                ) / (2 * dx)
             forces[i] = forces[i] + SVector{3}(dE_dx, dE_dy, dE_dz)
             forces[j] = forces[j] - SVector{3}(dE_dx, dE_dy, dE_dz)
         end
@@ -232,8 +259,13 @@ function numerical_total_force(r::Vector{SVector{3, Float64}}, box_size::SVector
 end
 
 # analytical_force = x -> ForwardDiff.gradient(pair_energy, x, y, box_size)
-function analytical_total_force(r::Vector{SVector{3, Float64}}, eps::Vector,
-                                sig::Vector, cutoff::Real, box_size::SVector{3,Float64})
+function analytical_total_force(
+    r::Vector{SVector{3,Float64}},
+    eps::Vector,
+    sig::Vector,
+    cutoff::Real,
+    box_size::SVector{3,Float64},
+)
     """
     Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -250,11 +282,20 @@ function analytical_total_force(r::Vector{SVector{3, Float64}}, eps::Vector,
         Vector of forces, where each element is the x, y, z forces on that atom
     """
     n = length(r)
-    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
 
     for i = 1:(n-1)
         for j = (i+1):n
-            dE_dr = grad(r[i], r[j], eps[i], eps[j], sig[i], sig[j], cutoff, box_size)  #
+            dE_dr = grad(
+                r[i],
+                r[j],
+                eps[i],
+                eps[j],
+                sig[i],
+                sig[j],
+                cutoff,
+                box_size,
+            )  #
             forces[i] = forces[i] + dE_dr
             forces[j] = forces[j] - dE_dr
         end
@@ -262,7 +303,10 @@ function analytical_total_force(r::Vector{SVector{3, Float64}}, eps::Vector,
     return forces
 end
 
-function total_force(r::Vector{SVector{3, Float64}}, box_size::SVector{3,Float64})
+function total_force(
+    r::Vector{SVector{3,Float64}},
+    box_size::SVector{3,Float64},
+)
     """
     Calculates the Lennard Jones forces on all atoms using by-hand
     analytical derivatives
@@ -280,7 +324,7 @@ function total_force(r::Vector{SVector{3, Float64}}, box_size::SVector{3,Float64
         Vector of forces, where each element is the x, y, z forces on that atom
     """
     n = length(r)
-    forces = [SVector{3}(0.0, 0.0, 0.0) for i=1:n ]
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
     for i = 1:(n-1)
         for j = (i+1):n
             fi, fj = pair_force(r[i], r[j], box_size)

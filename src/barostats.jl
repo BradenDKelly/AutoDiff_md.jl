@@ -1,10 +1,7 @@
-export
-    MonteCarloBarostat,
-    NoBarostat,
-    apply_barostat!
+export MonteCarloBarostat, NoBarostat, apply_barostat!
 
 include("types.jl")
-mutable struct MonteCarloBarostat{F, I} <: Barostat
+mutable struct MonteCarloBarostat{F,I} <: Barostat
     pcouple::F
     vol_attempt::I
     vol_accept::I
@@ -19,9 +16,10 @@ function apply_barostat!(
     barostat::MonteCarloBarostat,
     box_size,
     cutoff,
-    temp
-    )
-    r, box_size, cutoff = volume_change_lj_MC!(simulation_array, box_size, cutoff, temp, barostat)
+    temp,
+)
+    r, box_size, cutoff =
+        volume_change_lj_MC!(simulation_array, box_size, cutoff, temp, barostat)
     return r, box_size, cutoff
 end
 
@@ -29,6 +27,17 @@ struct NoBarostat <: Barostat
     use::Bool
 end
 
-function apply_barostat!(r, box_size, cutoff, eps, sig, temp, press, vmax, barostat::NoBarostat)
+function apply_barostat!(
+    r,
+    box_size,
+    cutoff,
+    eps,
+    sig,
+    temp,
+    press,
+    vmax,
+    barostat::NoBarostat,
+)
+    # TODO figure out why I need to return, and update in place doesn't work
     return r, box_size, cutoff
 end

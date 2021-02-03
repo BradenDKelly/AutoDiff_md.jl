@@ -1,5 +1,6 @@
 export AndersenThermostat, apply_thermostat
 
+# TODO add more thermostats i.e., Berendsen and Nose-Hoover chains
 struct AndersenThermostat{T} <: Thermostat
     bath_couple::T
     set_temp::T
