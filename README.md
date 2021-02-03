@@ -10,31 +10,109 @@ This is a playground for the many features of Julia. It is meant as a place to l
 An example for using it is:
 
 ```Julia
-using AutoDiff_md
-using StaticArrays
-
 temp = 119.8 * 2     # temperature (used for initial velocity)
 dt = 0.002      # time step dimensionless
-nsteps = 50000   # number of steps to use for trajectory
+nsteps = 10000   # number of steps to use for trajectory
 natoms = 1000
+cutoff = 1.2 # nm
+verlet_buffer = 0.2 #nm
 
-# parameters for Argon
-epsilon, sigma, mass = 0.996066, 0.3405, 39.96
-eps = [epsilon for i=1:natoms]
-sig = [sigma for i=1:natoms]
-m = [mass for i=1:natoms]
-r, v, L = Read_gromacs("nvt_equil.g96")
-press = 14.0
-pcouple = 10 # # time steps between vol changes
+top_file = joinpath(
+    dirname(pathof(AutoDiff_md)),
+    "../",
+    "structures",
+    "topology_files",
+    "Ar.top",
+    #"mea_tip3p.top",
+) # Ar.top
+specie_location = joinpath(
+    dirname(pathof(AutoDiff_md)),
+    "../",
+    "structures",
+    "single_molecules",
+)  # "mea.pdb",
+system_location =
+    joinpath(dirname(pathof(AutoDiff_md)), "../", "structures", "whole_systems")
 
-box_size = SVector{3}(L, L, L)
-cutoff = 1.2 # box_size[1] / 2 * 0.9
-v = [velocity(mass, temp) for i in 1:natoms]
+#records names, identifiers, coords of all atoms in system
+#@time systemPDB = ReadPDB(joinpath(system_location, "mea_water.pdb")) # Ar_1000.pdb
+@time systemPDB = ReadPDB(joinpath(system_location, "Ar_1000.pdb"))
+#records all FF parameters for the system
+@time systemTop = ReadTopFile(top_file) # returns struct FFParameters # located in Setup.jl
+#specieList = ["mea.pdb", "tip3p.pdb"] # "Ar.pdb",
+specieList = ["Ar.pdb"] # "Ar.pdb",
 
+molecule_list = []
+# records all names, identifiers, coords for all starting body_fixed molecules
+for mol in specieList
+    push!(molecule_list, ReadPDB(joinpath(specie_location, mol)))
+end
+
+atom_arrays, molecule_arrays =
+    MakeAtomArrays(systemTop, systemPDB, molecule_list)  # located in setup.jl
+intraFF, vdwTable, nonbonded_matrix, scaled_pairs =
+    MakeTables(systemTop, systemPDB, molecule_list) # located in Setup.jl
+box_size = SVector(systemPDB.box...)
+verlet_list = VerletList(verlet_buffer, [], [])
+make_neighbor_list!(
+    atom_arrays.r,
+    nonbonded_matrix,
+    box_size,
+    cutoff,
+    verlet_list,
+)
+
+# this stucture holds information on the number of atoms, molecules, atom types, molecule types, charges
+numbers = Numbers(
+    length(atom_arrays),
+    length(molecule_arrays),
+    length(systemTop.atomTypes),
+    length(systemTop.molParams),
+    count(!iszero, atom_arrays.qq),
+)
+simulation_arrays = SimulationArrays(
+    atom_arrays,
+    molecule_arrays,
+    intraFF,
+    vdwTable,
+    nonbonded_matrix,
+    scaled_pairs,
+    numbers,
+    verlet_list,
+)
+
+simulation_controls = SimulationControls(
+    VelocityVerlet(dt),
+    AndersenThermostat(1.0, temp),
+    MonteCarloBarostat(1.0, 0, 0, 14.0, volume(box_size) * 0.01, true),
+)
 mutable struct Properties
     kinetic_temp::Real
     pressure::Real
     total_energy::Real
 end
 props = Properties(0.0, 0.0, 0.0)
-simulate!(r, v, m, eps, sig, box_size, temp, press, dt, nsteps, cutoff, props, pcouple)
+# equilibrate
+start = Dates.now()
+Logo()
+# @btime analytical_total_force(simulation_arrays, cutoff, box_size)
+# @code_llvm analytical_total_force(simulation_arrays, cutoff, box_size)
+# @code_warntype analytical_total_force(simulation_arrays, cutoff, box_size)
+simulate!(
+    simulation_arrays,
+    simulation_controls,
+    box_size,
+    nsteps,
+    cutoff,
+    props,
+)
+
+finish = Dates.now()
+difference = finish - start
+println(
+    "Total runtime was: ",
+    Dates.canonicalize(Dates.CompoundPeriod(difference)),
+)
+
+
+Completion()
