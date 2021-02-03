@@ -1,9 +1,12 @@
 export VerletList, make_neighbor_list!
 
-mutable struct VerletList{T} <: NeighborList
+include("types.jl")
+
+mutable struct VerletList{T}<:NeighborList #where T # <: NeighborList
     buffer::T
     point::Array
     list::Array
+    update::Int
 end
 
 # TODO VerletList{Any} should be fixed to include a type T

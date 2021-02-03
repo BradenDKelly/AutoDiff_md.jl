@@ -46,7 +46,7 @@ Returns
 forces : Vector{SVector{3}}
     Vector of forces, where each element is the x, y, z forces on that atom
 """
-@inline function total_lj_force(
+@inline function total_lj_force2(
     simulation_arrays::SimulationArrays,
     cutoff::T,
     box_size::SVector,
@@ -70,6 +70,64 @@ forces : Vector{SVector{3}}
             )
             forces[i] = forces[i] + dE_dr
             forces[j] = forces[j] - dE_dr
+        end
+    end
+    return forces
+end
+
+"""
+Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+and neighborlist
+
+Parameters
+----------
+simulation_array : SimulationArray
+    atom_arrays::StructArray
+        molNum::I
+        molType::I
+        atype::I
+        mass::F
+        r::SVector{3,F}
+        v::SVector{3,F}
+        f::SVector{3,F}
+        qq::Float64
+cutoff : Float
+    interaction cutoff
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+forces : Vector{SVector{3}}
+    Vector of forces, where each element is the x, y, z forces on that atom
+"""
+@inline function total_lj_force(
+    sa::SimulationArrays,
+    cutoff::T,
+    box_size::SVector,
+    point::Array,
+    list::Array
+) where {T}
+    n = length(sa.atom_arrays.r[:])
+    forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
+    #point = simulation_arrays.neighborlist.point[:]
+    #list = simulation_arrays.neighborlist.list[:]
+
+    for i = 1:(n-1)
+        ti = sa.atom_arrays.atype[i]
+        for j = point[i]:(point[i + 1] - 1)
+            k = list[j]
+            tj = sa.atom_arrays.atype[k]
+            dE_dr = lj_grad(
+                sa.atom_arrays.r[i],
+                sa.atom_arrays.r[k],
+                sa.vdwTable.ϵᵢⱼ[ti, tj],
+                sa.vdwTable.σᵢⱼ[ti, tj],
+                cutoff,
+                box_size,
+            )
+            forces[i] = forces[i] + dE_dr
+            forces[k] = forces[k] - dE_dr
         end
     end
     return forces
@@ -136,9 +194,11 @@ function analytical_total_force(
     simulation_arrays::SimulationArrays,
     cutoff,
     box_size,
+    point,
+    list
 )
     """total energy of the system"""
-    return total_lj_force(simulation_arrays, cutoff, box_size)
+    return total_lj_force(simulation_arrays, cutoff, box_size, point, list)
 end
 function analytical_total_force(
     r::Vector,

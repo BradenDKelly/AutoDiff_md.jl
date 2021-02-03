@@ -16,6 +16,7 @@ export BodyFixed,
 
 include("types.jl")
 include("integrators.jl")
+include("neighbor_lists.jl")
 
 macro def(name, definition)
     return quote
@@ -374,15 +375,15 @@ mutable struct Tables #{T<:Vector} #<: ForceField
     end
 end
 
-mutable struct SimulationArrays{S<:StructArray,T<:StructArray}
+mutable struct SimulationArrays{S<:StructArray,T<:StructArray, V<:VerletList}
     atom_arrays::S
     molecule_arrays::T
+    neighborlist::V #NeighborList
     intraFF::IntraForceField
     vdwTable::Tables
     nonbonded_matrix::Array
     scaled_pairs::Vector
     numbers::Numbers
-    neighborlist::NeighborList
 end
 
 struct SimulationContext

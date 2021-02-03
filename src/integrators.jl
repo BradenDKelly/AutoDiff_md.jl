@@ -83,7 +83,12 @@ function apply_integrator!(
         r[i] = pb!(r[i] .+ v[i] .* dt, box_size[1])
     end
     # update forces
-    f = analytical_total_force(simulation_arrays, cutoff, box_size)
+    f = analytical_total_force(
+        simulation_arrays, cutoff,
+        box_size,
+        simulation_arrays.neighborlist.point[:],
+        simulation_arrays.neighborlist.list[:]
+        )
     for i = 1:n
         # update velocities
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
