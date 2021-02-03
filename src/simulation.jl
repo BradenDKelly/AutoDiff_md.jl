@@ -5,6 +5,56 @@ include("energies.jl")
 include("integrators.jl")
 include("thermo_functions.jl")
 
+"""
+The main loop for generating the molecular dynamics trajectory
+
+Parameters
+----------
+simulation_array : SimulationArray
+    atom_arrays::StructArray
+        molNum::I
+        molType::I
+        atype::I
+        mass::F
+        r::SVector{3,F}
+        v::SVector{3,F}
+        f::SVector{3,F}
+        qq::Float64
+    molecule_arrays::StructArray
+    intraFF::IntraForceField
+        bonds::Vector{Bonds}
+        angles::Vector{Angles}
+        dihedrals::Vector{Dihedrals}
+    vdwTable::Tables
+        eps : table of lj epsilon parameters
+        sig : table of lj sigma parameters
+    nonbonded_matrix::Array
+    scaled_pairs::Vector
+    numbers::Numbers
+        atoms::I
+        molecules::I
+        atomTypes::I
+        molTypes::I
+        charges::I
+    neighborlist::NeighborList
+simulation_controls : SimulationControls
+    integrator::VelocityVerlet
+    thermostat::Thermostat
+    barostat::Barostat
+box_size : SVector{3}
+    Vector of x, y, z box lengths
+nsteps : Int64
+    number of steps to take
+cutoff : Float
+    interaction cutoff distance
+props : Struct
+    struct with properties such as temp, press, energy etc
+
+Returns
+----------
+Currently just prints samples, but if it was actually to be used, it would
+return sample results
+"""
 function simulate!(
     simulation_arrays::SimulationArrays,
     simulation_controls::SimulationControls,
@@ -13,56 +63,6 @@ function simulate!(
     cutoff,
     props,
 )
-    """
-    The main loop for generating the molecular dynamics trajectory
-
-    Parameters
-    ----------
-    simulation_array : SimulationArray
-        atom_arrays::StructArray
-            molNum::I
-            molType::I
-            atype::I
-            mass::F
-            r::SVector{3,F}
-            v::SVector{3,F}
-            f::SVector{3,F}
-            qq::Float64
-        molecule_arrays::StructArray
-        intraFF::IntraForceField
-            bonds::Vector{Bonds}
-            angles::Vector{Angles}
-            dihedrals::Vector{Dihedrals}
-        vdwTable::Tables
-            eps : table of lj epsilon parameters
-            sig : table of lj sigma parameters
-        nonbonded_matrix::Array
-        scaled_pairs::Vector
-        numbers::Numbers
-            atoms::I
-            molecules::I
-            atomTypes::I
-            molTypes::I
-            charges::I
-        neighborlist::NeighborList
-    simulation_controls : SimulationControls
-        integrator::VelocityVerlet
-        thermostat::Thermostat
-        barostat::Barostat
-    box_size : SVector{3}
-        Vector of x, y, z box lengths
-    nsteps : Int64
-        number of steps to take
-    cutoff : Float
-        interaction cutoff distance
-    props : Struct
-        struct with properties such as temp, press, energy etc
-
-    Returns
-    ----------
-    Currently just prints samples, but if it was actually to be used, it would
-    return sample results
-    """
     n = length(simulation_arrays.atom_arrays.r)
     simulation_arrays.atom_arrays.v[:] = [
         velocity(
@@ -210,6 +210,43 @@ function simulate!(
 end
 
 # TODO contemplate discarding array style function
+"""
+The main loop for generating the molecular dynamics trajectory
+
+Parameters
+----------
+r : Vector{SVector{3}}
+    vector of all atom coordinates
+v : Vector{SVectors}
+    Starting velocites for each atom - read from some file
+m : Vector
+    masses of all atoms
+eps : Vector
+    epsilon parameter of all atoms
+sig : Vector
+    sigma parameters of all atoms
+box_size : SVector{3}
+    Vector of x, y, z box lengths
+temp : Float64
+    set temperature (not used, we don't use Maxwell-Boltzmann for initial
+    velocities, we read them from file)
+press : Float64
+    set (desired) pressure for the npt ensemble
+dt : Float64
+    time step (approximately 0.005 for reduced units)
+nsteps : Int64
+    number of steps to take
+cutoff : Float
+    interaction cutoff distance
+props : Struct
+    struct with properties such as temp, press, energy etc
+
+
+Returns
+----------
+Currently just prints samples, but if it was actually to be used, it would
+return sample results
+"""
 function simulate!(
     r,
     v,
@@ -225,43 +262,7 @@ function simulate!(
     props,
     pcouple,
 )
-    """
-    The main loop for generating the molecular dynamics trajectory
 
-    Parameters
-    ----------
-    r : Vector{SVector{3}}
-        vector of all atom coordinates
-    v : Vector{SVectors}
-        Starting velocites for each atom - read from some file
-    m : Vector
-        masses of all atoms
-    eps : Vector
-        epsilon parameter of all atoms
-    sig : Vector
-        sigma parameters of all atoms
-    box_size : SVector{3}
-        Vector of x, y, z box lengths
-    temp : Float64
-        set temperature (not used, we don't use Maxwell-Boltzmann for initial
-        velocities, we read them from file)
-    press : Float64
-        set (desired) pressure for the npt ensemble
-    dt : Float64
-        time step (approximately 0.005 for reduced units)
-    nsteps : Int64
-        number of steps to take
-    cutoff : Float
-        interaction cutoff distance
-    props : Struct
-        struct with properties such as temp, press, energy etc
-
-
-    Returns
-    ----------
-    Currently just prints samples, but if it was actually to be used, it would
-    return sample results
-    """
     n = length(r)
     v = initial_velocity(m, v)
     println("Momentum center of mass: ", sum(m .* v))

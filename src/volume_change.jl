@@ -1,31 +1,32 @@
 export volume_change_lj_MC!
 
-function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
-    """Changes the volume of the simulation box using stat mech
-    Parameters
-    ----------
-    r : Vector{SVector}
-        atom coordinates
-    v : Vector{SVector}
-        atom velocities
-    box_size : SVector{3}
-        vector of x, y, z box lengths (should all be the same)
-    cutoff : Float
-        interaction cutoff distance
-    eps : Vector
-        epsilon parameters of all atoms
-    sigma : Vector
-        sigma parameters of all atoms
-    temp : Float
-        temperature of the simulation
-    press : Float
-        pressure of the simulation
-    vmax : Float
-        maximum volume change (max logarithm of volume)
+"""Changes the volume of the simulation box using stat mech
+Parameters
+----------
+r : Vector{SVector}
+    atom coordinates
+v : Vector{SVector}
+    atom velocities
+box_size : SVector{3}
+    vector of x, y, z box lengths (should all be the same)
+cutoff : Float
+    interaction cutoff distance
+eps : Vector
+    epsilon parameters of all atoms
+sigma : Vector
+    sigma parameters of all atoms
+temp : Float
+    temperature of the simulation
+press : Float
+    pressure of the simulation
+vmax : Float
+    maximum volume change (max logarithm of volume)
 
-    Returns
-    r, boxsize, cutoff for the new volume
-    """
+Returns
+r, boxsize, cutoff for the new volume
+"""
+function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
+
     n = length(r)
     L_old = box_size[1]
     volume_old = box_size[1] * box_size[2] * box_size[3]
@@ -63,17 +64,11 @@ function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
     # TODO update tail corrections
 end
 
-function volume_change_lj_MC!(
-    simulation_arrays::SimulationArrays,
-    box_size,
-    cutoff,
-    temp,
-    barostat::MonteCarloBarostat,
-)
-    """Changes the volume of the simulation box using stat mech
+"""Changes the volume of the simulation box using stat mech
     Parameters
     ----------
-
+    simulation_array : SimulationArrays
+        holds r, v, f for atoms, r for molecules and other parameters.
     box_size : SVector{3}
         vector of x, y, z box lengths (should all be the same)
     cutoff : Float
@@ -89,7 +84,15 @@ function volume_change_lj_MC!(
         use::Bool
     Returns
     r, boxsize, cutoff for the new volume
-    """
+"""
+function volume_change_lj_MC!(
+    simulation_arrays::SimulationArrays,
+    box_size,
+    cutoff,
+    temp,
+    barostat::MonteCarloBarostat,
+)
+
     barostat.vol_attempt += 1
     n = length(simulation_arrays.atom_arrays.r[:])
     L_old = box_size[1]

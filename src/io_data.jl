@@ -1,24 +1,23 @@
 export Read_gromacs, ReadCNF, PrintPDB_argon
 
+"""
+Reads initial structures and generates position and velocity arrays
+
+Parameters
+-----------
+input : string
+    name of file to open
+
+Notes
+----------
+some files store position then quaternion elements (4 elements to a quat)
+in this case we just assume 3 of them as our initial velocity even though
+this clearly makes no sense, we just need a start. We could override
+with Maxwell-Boltzmann if we wanted.
+
+hence, "e" is actually for quaternion.
+"""
 function ReadCNF(input)
-    """
-    Reads initial structures and generates position and velocity arrays
-
-    Parameters
-    -----------
-    input : string
-        name of file to open
-
-    Notes
-    ----------
-    some files store position then quaternion elements (4 elements to a quat)
-    in this case we just assume 3 of them as our initial velocity even though
-    this clearly makes no sense, we just need a start. We could override
-    with Maxwell-Boltzmann if we wanted.
-
-    hence, "e" is actually for quaternion.
-    """
-
     r = []
     e = []
     i = 0
@@ -62,24 +61,24 @@ function ReadCNF(input)
     return r, e, box1
 end
 
+"""
+Reads initial coordinates and velocity from a gromacs file
+
+Parameters
+-----------
+input : string
+    name of file to open
+
+Notes
+----------
+some files store position then quaternion elements (4 elements to a quat)
+in this case we just assume 3 of them as our initial velocity even though
+this clearly makes no sense, we just need a start. We could override
+with Maxwell-Boltzmann if we wanted.
+
+hence, "e" is actually for quaternion.
+"""
 function Read_gromacs(input)
-    """
-    Reads initial coordinates and velocity from a gromacs file
-
-    Parameters
-    -----------
-    input : string
-        name of file to open
-
-    Notes
-    ----------
-    some files store position then quaternion elements (4 elements to a quat)
-    in this case we just assume 3 of them as our initial velocity even though
-    this clearly makes no sense, we just need a start. We could override
-    with Maxwell-Boltzmann if we wanted.
-
-    hence, "e" is actually for quaternion.
-    """
 
     r = []
     v = []
@@ -139,8 +138,9 @@ function Read_gromacs(input)
     return r, v, box1
 end
 
+""" Print a pdb file for this snapshot. This is for monatomic system"""
 function PrintPDB_argon(r::Vector, boxSize, step = 1, filename = "pdbOutput")
-    """ Print a pdb file for this snapshot. This is for monatomic system"""
+
     open(filename * "_" * string(step) * ".pdb", "w") do file
 
         line = @sprintf(

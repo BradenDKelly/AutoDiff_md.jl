@@ -7,6 +7,14 @@ mutable struct VerletList{T} <: NeighborList
 end
 
 # TODO VerletList{Any} should be fixed to include a type T
+"""
+Generates a verlet neighbor list.
+
+Fortran Code https://github.com/Allen-Tildesley/examples/blob/master/verlet_list_module.f90
+# They also have python code too
+# In: r,r_list_box, BoxSize, nonbonded_matrix
+# Out: list,point
+"""
 function make_neighbor_list!(
     r::Vector,
     nonbonded_matrix::Array{Bool,2},
@@ -14,14 +22,7 @@ function make_neighbor_list!(
     cutoff::T,
     array_holder::VerletList{T},
 ) where {T}
-    """
-    Generates a verlet neighbor list.
 
-    Fortran Code https://github.com/Allen-Tildesley/examples/blob/master/verlet_list_module.f90
-    # They also have python code too
-    # In: r,r_list_box, BoxSize, nonbonded_matrix
-    # Out: list,point
-    """
 
     k = 0
     n = length(r)

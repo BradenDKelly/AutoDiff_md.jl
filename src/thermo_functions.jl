@@ -4,8 +4,9 @@ include("forces.jl")
 include("structs.jl")
 
 # TODO hand code LJ force calc... it is 2-3x faster than autodiff :(
+"""Vector between two coordinate values, accounting for mirror image seperation"""
 @inline function vector1D(c1, c2, box_size)
-    """Vector between two coordinate values, accounting for mirror image seperation"""
+
     if c1 < c2
         return (c2 - c1) < (c1 - c2 + box_size) ? (c2 - c1) :
                (c2 - c1 - box_size)
@@ -19,27 +20,28 @@ function virial(simulation_arrays::SimulationArrays, cutoff, box_size)
     return lj_virial(simulation_arrays, cutoff, box_size)
 end
 
+""" Calculates the virial contribution to pressure
+
+Parameters
+----------
+r : Vector{SVector{3}}
+    Vector of atom coordinates
+eps : Vector
+    epsilon parameters of all atoms
+sigma : Vector
+    sigma parameters of all atoms
+cutoff : Float
+    interaction cutoff distance
+box : SVector{3}
+    Vector with x, y, z box lengths
+
+Returns
+----------
+tot_vir : Float64
+    total virial contribution to the pressure
+"""
 function virial(r::Vector, eps::Vector, sig::Vector, cutoff::Real, box_size)
-    """ Calculates the virial contribution to pressure
 
-    Parameters
-    ----------
-    r : Vector{SVector{3}}
-        Vector of atom coordinates
-    eps : Vector
-        epsilon parameters of all atoms
-    sigma : Vector
-        sigma parameters of all atoms
-    cutoff : Float
-        interaction cutoff distance
-    box : SVector{3}
-        Vector with x, y, z box lengths
-
-    Returns
-    ----------
-    tot_vir : Float64
-        total virial contribution to the pressure
-    """
     n = length(r)
     tot_vir = 0.0
     for j = 1:n-1
@@ -65,23 +67,24 @@ function virial(r::Vector, eps::Vector, sig::Vector, cutoff::Real, box_size)
     return tot_vir
 end
 
+""" Calculates the virial contribution to pressure
+
+Parameters
+----------
+simulation_arrays : SimulationArrays
+    atomic and molecular arrays with r, v, m, f, etc.
+cutoff : Float
+    interaction cutoff distance
+box : SVector{3}
+    Vector with x, y, z box lengths
+
+Returns
+----------
+tot_vir : Float64
+    total molecular virial contribution to the pressure
+"""
 function lj_virial(simulation_arrays::SimulationArrays, cutoff::Real, box_size)
-    """ Calculates the virial contribution to pressure
 
-    Parameters
-    ----------
-    simulation_arrays : SimulationArrays
-        atomic and molecular arrays with r, v, m, f, etc.
-    cutoff : Float
-        interaction cutoff distance
-    box : SVector{3}
-        Vector with x, y, z box lengths
-
-    Returns
-    ----------
-    tot_vir : Float64
-        total molecular virial contribution to the pressure
-    """
     n = length(simulation_arrays.molecule_arrays.COM[:])
     tot_vir = 0.0
     for i = 1:n-1

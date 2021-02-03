@@ -8,46 +8,49 @@ export grad,
 
 include("energies.jl")
 
+""" Calculates the force between two atoms using ForwardDiff"""
 grad(x, y, e1, e2, s1, s2, c, b) =
     -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
+
 """ Calculates the force between two atoms using ForwardDiff"""
 lj_grad(x, y, e, s, c, b) =
     -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b), x)
+
 """ Calculates the force between two atoms using ForwardDiff"""
 lj_grad(x, y, e, s, c, b, shift) =
     -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b, shift), x)
-""" Calculates the force between two atoms using ForwardDiff"""
 
+
+"""
+Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+
+Parameters
+----------
+simulation_array : SimulationArray
+    atom_arrays::StructArray
+        molNum::I
+        molType::I
+        atype::I
+        mass::F
+        r::SVector{3,F}
+        v::SVector{3,F}
+        f::SVector{3,F}
+        qq::Float64
+cutoff : Float
+    interaction cutoff
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+forces : Vector{SVector{3}}
+    Vector of forces, where each element is the x, y, z forces on that atom
+"""
 @inline function total_lj_force(
     simulation_arrays::SimulationArrays,
     cutoff::T,
     box_size::SVector,
 ) where {T}
-    """
-    Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
-
-    Parameters
-    ----------
-    simulation_array : SimulationArray
-        atom_arrays::StructArray
-            molNum::I
-            molType::I
-            atype::I
-            mass::F
-            r::SVector{3,F}
-            v::SVector{3,F}
-            f::SVector{3,F}
-            qq::Float64
-    cutoff : Float
-        interaction cutoff
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    forces : Vector{SVector{3}}
-        Vector of forces, where each element is the x, y, z forces on that atom
-    """
     n::Int64 = length(simulation_arrays.atom_arrays.r[:])
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
     ti::Int64 = 0
@@ -72,6 +75,31 @@ lj_grad(x, y, e, s, c, b, shift) =
     return forces
 end
 
+"""
+Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+
+Parameters
+----------
+simulation_array : SimulationArray
+    atom_arrays::StructArray
+        molNum::I
+        molType::I
+        atype::I
+        mass::F
+        r::SVector{3,F}
+        v::SVector{3,F}
+        f::SVector{3,F}
+        qq::Float64
+cutoff : Float
+    interaction cutoff
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+forces : Vector{SVector{3}}
+    Vector of forces, where each element is the x, y, z forces on that atom
+"""
 @inline function total_lj_force(
     r::Vector,
     atype::Vector,
@@ -79,31 +107,7 @@ end
     cutoff::T,
     box_size::SVector,
 ) where {T}
-    """
-    Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
-    Parameters
-    ----------
-    simulation_array : SimulationArray
-        atom_arrays::StructArray
-            molNum::I
-            molType::I
-            atype::I
-            mass::F
-            r::SVector{3,F}
-            v::SVector{3,F}
-            f::SVector{3,F}
-            qq::Float64
-    cutoff : Float
-        interaction cutoff
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    forces : Vector{SVector{3}}
-        Vector of forces, where each element is the x, y, z forces on that atom
-    """
     n::Int64 = length(r)
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
     ti::Int64 = 0
@@ -147,31 +151,31 @@ function analytical_total_force(
     return total_lj_force(r, atype, vdwTable, cutoff, box_size)
 end
 
+"""
+Calculates the Lennard Jones Force between two atoms
+
+Parameters
+----------
+r1 : SVector{3}
+    coordinate of atom 1
+r2 : SVector{3}
+    coordinate of atom 2
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+f1 : SVector{3}
+    SVector with x, y, z forces on atom 1
+f2 : SVector{3}
+    SVector with x, y, z forces on atom 2
+
+"""
 @inline function pair_force(
     r1::SVector{3,Float64},
     r2::SVector{3,Float64},
     box_size,
 )
-    """
-    Calculates the Lennard Jones Force between two atoms
-
-    Parameters
-    ----------
-    r1 : SVector{3}
-        coordinate of atom 1
-    r2 : SVector{3}
-        coordinate of atom 2
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    f1 : SVector{3}
-        SVector with x, y, z forces on atom 1
-    f2 : SVector{3}
-        SVector with x, y, z forces on atom 2
-
-    """
     diff = SVector{3}(0.0, 0.0, 0.0)
 
     # apply mirror image separation
@@ -202,26 +206,25 @@ end
     return f1, f2
 end
 
+"""
+Calculates the Lennard Jones forces on all atoms using numerical derivatives
 
+Parameters
+----------
+r : SVector{3}
+    coordinates of all atoms
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+forces : Vector{SVector{3}}
+    Vector of forces, where each element is the x, y, z forces on that atom
+"""
 function numerical_total_force(
     r::Vector{SVector{3,Float64}},
     box_size::SVector{3,Float64},
 )
-    """
-    Calculates the Lennard Jones forces on all atoms using numerical derivatives
-
-    Parameters
-    ----------
-    r : SVector{3}
-        coordinates of all atoms
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    forces : Vector{SVector{3}}
-        Vector of forces, where each element is the x, y, z forces on that atom
-    """
     n = length(r)
     dx = 1e-8
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
@@ -258,7 +261,21 @@ function numerical_total_force(
     return forces
 end
 
-# analytical_force = x -> ForwardDiff.gradient(pair_energy, x, y, box_size)
+"""
+Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+
+Parameters
+----------
+r : SVector{3}
+    coordinates of all atoms
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+forces : Vector{SVector{3}}
+    Vector of forces, where each element is the x, y, z forces on that atom
+"""
 function analytical_total_force(
     r::Vector{SVector{3,Float64}},
     eps::Vector,
@@ -266,21 +283,7 @@ function analytical_total_force(
     cutoff::Real,
     box_size::SVector{3,Float64},
 )
-    """
-    Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
-    Parameters
-    ----------
-    r : SVector{3}
-        coordinates of all atoms
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    forces : Vector{SVector{3}}
-        Vector of forces, where each element is the x, y, z forces on that atom
-    """
     n = length(r)
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
 
@@ -303,26 +306,27 @@ function analytical_total_force(
     return forces
 end
 
+"""
+Calculates the Lennard Jones forces on all atoms using by-hand
+analytical derivatives
+
+Parameters
+----------
+r : SVector{3}
+    coordinates of all atoms
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+forces : Vector{SVector{3}}
+    Vector of forces, where each element is the x, y, z forces on that atom
+"""
 function total_force(
     r::Vector{SVector{3,Float64}},
     box_size::SVector{3,Float64},
 )
-    """
-    Calculates the Lennard Jones forces on all atoms using by-hand
-    analytical derivatives
 
-    Parameters
-    ----------
-    r : SVector{3}
-        coordinates of all atoms
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    forces : Vector{SVector{3}}
-        Vector of forces, where each element is the x, y, z forces on that atom
-    """
     n = length(r)
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
     for i = 1:(n-1)

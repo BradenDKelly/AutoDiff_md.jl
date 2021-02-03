@@ -3,23 +3,24 @@ export initial_velocity, initCubicGrid, velocity
 
 const DefaultFloat = Float64
 
+""" This assumes we are being given a set of velocities.
+We shift the velocities so that the net momentum is 0
+
+Parameters
+----------
+v : Vector
+    vector of SVectors, the list of each atoms starting velocities as read
+    from some file
+m : Vector
+    Vector of each atoms mass
+
+Returns
+----------
+v : Vector{SVector{3}}
+    vector of velocites that have center of mass velocity of zero
+"""
 function initial_velocity(m::Vector, v::Vector)
-    """ This assumes we are being given a set of velocities.
-    We shift the velocities so that the net momentum is 0
 
-    Parameters
-    ----------
-    v : Vector
-        vector of SVectors, the list of each atoms starting velocities as read
-        from some file
-    m : Vector
-        Vector of each atoms mass
-
-    Returns
-    ----------
-    v : Vector{SVector{3}}
-        vector of velocites that have center of mass velocity of zero
-    """
     n = length(v)
     v = [SVector{3,Float64}(v[i]...) for i = 1:length(v)]
     sumv = sum(m .* v) ./ n
@@ -30,6 +31,7 @@ function initial_velocity(m::Vector, v::Vector)
     return v
 end
 
+"""Creates initial positions on a lattice"""
 function initCubicGrid(n::Int, rho::Real)
 
     #!------------------------------------------------------------------------

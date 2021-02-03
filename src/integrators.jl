@@ -1,19 +1,20 @@
 #using StaticArrays
 export pb!, apply_integrator!, VelocityVerlet
 
+""" Periodic Boundary Conditions
+
+Parameters
+----------
+r : SVector{3}
+    coordinates of a single atom
+box : Float64
+    box size
+
+Returns
+Nothing. Coordinates are changed in place
+"""
 function pb!(r, box)
-    """ Periodic Boundary Conditions
 
-    Parameters
-    ----------
-    r : SVector{3}
-        coordinates of a single atom
-    box : Float64
-        box size
-
-    Returns
-    Nothing. Coordinates are changed in place
-    """
     x = r[1]
     y = r[2]
     z = r[3]
@@ -40,43 +41,33 @@ function pb!(r, box)
     r = SVector{3}(x, y, z)
 end
 
+"""Struct with parameters for Velocity Verlet integrator"""
 struct VelocityVerlet{F} <: Integrator
     dt::F
 end
 
+"""
+Velocity-Verlet integrator scheme.
+
+Parameters
+----------
+simulation_array : SimulationArray
+    contains arrays related to atoms, molecules, and their parameters.
+cutoff : Float
+    interaction cutoff distance
+box_size : SVector{3}
+    vector of x, y, z box lengths (should all be the same)
+
+Returns
+Nothing. Updated in place.
+"""
 function apply_integrator!(
     simulation_arrays,
     integrator::VelocityVerlet,
     cutoff,
     box_size,
 )
-    """
-    Velocity-Verlet integrator scheme.
 
-    Parameters
-    ----------
-    r : Vector{SVector}
-        atom coordinates
-    v : Vector{SVector}
-        atom velocities
-    f : Vector{SVector}
-        forces on atoms
-    m : Vector{Float64}
-        masses of atoms
-    dt : Float64
-        time step (appx 0.005 for reduced units)
-    eps : Vector
-        epsilon parameters of all atoms
-    sigma : Vector
-        sigma parameters of all atoms
-    cutoff : Float
-        interaction cutoff distance
-    box_size : SVector{3}
-        vector of x, y, z box lengths (should all be the same)
-
-    Returns
-    Nothing. Updated in place.
-    """
     n = length(simulation_arrays.atom_arrays.r[:])
     # for simpler notation, I shift arrays to new variable names
     r = simulation_arrays.atom_arrays.r[:]
@@ -123,9 +114,8 @@ end
 #     b_propagator(soa, dt / 2.0, n)
 # end
 
-
+"""Implements the A propagator (drift)"""
 function a_propagator(t::Real, n::Int64, soa, boxSize)
-    """Implements the A propagator (drift)"""
     # in: t,soa, boxSize
     # t is typically timestep / 2
 
@@ -136,9 +126,8 @@ function a_propagator(t::Real, n::Int64, soa, boxSize)
     pbc!(soa, r, n, boxSize)
 end
 
-
+""" Update Velocity """
 function b_propagator(soa, t, n)
-    """ Update Velocity """
     @inbounds for i = 1:n
         soa.v[i] = soa.v[i] + soa.f[i] * t
     end

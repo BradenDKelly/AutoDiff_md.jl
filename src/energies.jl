@@ -2,6 +2,31 @@ export pair_energy, total_energy
 
 include("structs.jl")
 
+"""
+Calculates the Lennard Jones energy between two atoms
+
+Parameters
+----------
+r1 : SVector{3}
+    coordinate of atom 1
+r2 : SVector{3}
+    coordinate of atom 2
+ϵ : Scalar
+    post-mixing rule epsilon parameter of atom pair
+σ : Vector
+    post-mixing rule sigma parameter of atom pair
+cutoff : Float
+    interaction cutoff distance
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+shifted_potential : Float
+    cut and shift potential
+
+Returns
+---------
+e : float
+    potential energy between atoms 1 and atom 2
+"""
 @inline function lj_atom_pair_energy(
     r1::SVector{3},
     r2::SVector{3},
@@ -11,31 +36,7 @@ include("structs.jl")
     box_size::SVector{3},
     shifted_potential::Real = 0.0,
 )
-    """
-    Calculates the Lennard Jones energy between two atoms
 
-    Parameters
-    ----------
-    r1 : SVector{3}
-        coordinate of atom 1
-    r2 : SVector{3}
-        coordinate of atom 2
-    ϵ : Scalar
-        post-mixing rule epsilon parameter of atom pair
-    σ : Vector
-        post-mixing rule sigma parameter of atom pair
-    cutoff : Float
-        interaction cutoff distance
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-    shifted_potential : Float
-        cut and shift potential
-
-    Returns
-    ---------
-    e : float
-        potential energy between atoms 1 and atom 2
-    """
     # diff = SVector{3}(0.0,0.0,0.0)
     # apply mirror image separation
     #@inbounds for i=1:
@@ -64,45 +65,48 @@ include("structs.jl")
     return e
 end
 
+"""Calculates the LJ energy contribution between two molecules"""
 @inline function lj_molec_pair_energy()
     println("In progress")
 end
 
+"""Calculates the LJ energy between a molecule and the rest of the system"""
 @inline function lj_molec_vs_system_energy()
     println("In progress")
 
 end
 
+"""
+Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+
+Parameters
+----------
+simulation_array : SimulationArray
+    atom_arrays::StructArray
+        molNum::I
+        molType::I
+        atype::I
+        mass::F
+        r::SVector{3,F}
+        v::SVector{3,F}
+        f::SVector{3,F}
+        qq::Float64
+cutoff : Float
+    interaction cutoff
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+forces : Vector{SVector{3}}
+    Vector of forces, where each element is the x, y, z forces on that atom
+"""
 @inline function total_lj_energy(
     simulation_arrays::SimulationArrays,
     cutoff::T,
     box_size::SVector,
 ) where {T}
-    """
-    Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
-    Parameters
-    ----------
-    simulation_array : SimulationArray
-        atom_arrays::StructArray
-            molNum::I
-            molType::I
-            atype::I
-            mass::F
-            r::SVector{3,F}
-            v::SVector{3,F}
-            f::SVector{3,F}
-            qq::Float64
-    cutoff : Float
-        interaction cutoff
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    forces : Vector{SVector{3}}
-        Vector of forces, where each element is the x, y, z forces on that atom
-    """
     n = length(simulation_arrays.atom_arrays.r[:])
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
     energetics = [0.0 for i = 1:n]
@@ -126,11 +130,36 @@ end
     return energy, energetics
 end
 
+"""total energy of the system"""
 function total_energy(simulation_arrays::SimulationArrays, cutoff, box_size)
-    """total energy of the system"""
     return total_lj_energy(simulation_arrays, cutoff, box_size)
 end
 
+"""
+NOTE: OBSOLETE FUNCTION:
+
+Calculates the Lennard Jones energy between two atoms
+
+Parameters
+----------
+r1 : SVector{3}
+    coordinate of atom 1
+r2 : SVector{3}
+    coordinate of atom 2
+eps : Vector
+    epsilon parameters of all atoms
+sigma : Vector
+    sigma parameters of all atoms
+cutoff : Float
+    interaction cutoff distance
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+e : float
+    potential energy between atoms 1 and atom 2
+"""
 @inline function pair_energy(
     r1::SVector{3},
     r2::SVector{3},
@@ -141,31 +170,6 @@ end
     cutoff::Real,
     box_size::SVector{3},
 )
-    """
-    NOTE: OBSOLETE FUNCTION:
-
-    Calculates the Lennard Jones energy between two atoms
-
-    Parameters
-    ----------
-    r1 : SVector{3}
-        coordinate of atom 1
-    r2 : SVector{3}
-        coordinate of atom 2
-    eps : Vector
-        epsilon parameters of all atoms
-    sigma : Vector
-        sigma parameters of all atoms
-    cutoff : Float
-        interaction cutoff distance
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    e : float
-        potential energy between atoms 1 and atom 2
-    """
     # diff = SVector{3}(0.0,0.0,0.0)
     # apply mirror image separation
     #@inbounds for i=1:
@@ -195,8 +199,21 @@ end
 
 end
 
-#using StaticArrays
+"""
+Calculates the Lennard Jones energy of the system
 
+Parameters
+----------
+r : SVector{3}
+    coordinates of all atoms
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+
+Returns
+---------
+energy : float
+    LJ potential energy of the system
+"""
 function total_energy(
     r::Vector{SVector{3,Float64}},
     eps::Vector,
@@ -204,21 +221,6 @@ function total_energy(
     cutoff::Real,
     box_size::SVector{3,Float64},
 )
-    """
-    Calculates the Lennard Jones energy of the system
-
-    Parameters
-    ----------
-    r : SVector{3}
-        coordinates of all atoms
-    box_size : SVector{3}
-        vector with box length in the x, y, z direction
-
-    Returns
-    ---------
-    energy : float
-        LJ potential energy of the system
-    """
     n = length(r)
     energetics = [0.0 for i = 1:n]
     energy = 0.0
