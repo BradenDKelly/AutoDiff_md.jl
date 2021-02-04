@@ -98,8 +98,8 @@ box_size : SVector{3}
 
 Returns
 ---------
-forces : Vector{SVector{3}}
-    Vector of forces, where each element is the x, y, z forces on that atom
+energy : float
+    total lennard-jones energy of the system
 """
 @inline function total_lj_energy(
     simulation_arrays::SimulationArrays,
@@ -108,7 +108,6 @@ forces : Vector{SVector{3}}
 ) where {T}
 
     n = length(simulation_arrays.atom_arrays.r[:])
-    forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
     energetics = [0.0 for i = 1:n]
     energy = 0.0
     for i = 1:(n-1)
@@ -130,9 +129,74 @@ forces : Vector{SVector{3}}
     return energy, energetics
 end
 
+"""
+Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
+
+Parameters
+----------
+simulation_array : SimulationArray
+    atom_arrays::StructArray
+        molNum::I
+        molType::I
+        atype::I
+        mass::F
+        r::SVector{3,F}
+        v::SVector{3,F}
+        f::SVector{3,F}
+        qq::Float64
+cutoff : Float
+    interaction cutoff
+box_size : SVector{3}
+    vector with box length in the x, y, z direction
+point : array
+    part of neighbor list
+list : array
+    part of neighbor list
+
+    Returns
+    ---------
+    energy : float
+        total lennard-jones energy of the system
+    """
+@inline function total_lj_energy(
+    sa::SimulationArrays,
+    cutoff::T,
+    box_size::SVector,
+    point::Array,
+    list::Array
+) where {T}
+
+    n = length(sa.atom_arrays.r[:])
+    energetics = [0.0 for i = 1:n]
+    energy = 0.0
+    for i = 1:(n-1)
+        ti = sa.atom_arrays.atype[i]
+        for j = point[i]:(point[i + 1] - 1)
+            k = list[j]
+            tj = sa.atom_arrays.atype[k]
+            ener = lj_atom_pair_energy(
+                sa.atom_arrays.r[i],
+                sa.atom_arrays.r[k],
+                sa.vdwTable.ϵᵢⱼ[ti, tj],
+                sa.vdwTable.σᵢⱼ[ti, tj],
+                cutoff,
+                box_size,
+            )
+            energy += ener
+            energetics[i] += ener
+        end
+    end
+    return energy, energetics
+end
+
 """total energy of the system"""
 function total_energy(simulation_arrays::SimulationArrays, cutoff, box_size)
     return total_lj_energy(simulation_arrays, cutoff, box_size)
+end
+
+"""total energy of the system with neighbor list"""
+function total_energy(simulation_arrays::SimulationArrays, cutoff, box_size, point, list)
+    return total_lj_energy(simulation_arrays, cutoff, box_size, point, list)
 end
 
 """

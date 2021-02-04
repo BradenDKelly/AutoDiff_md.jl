@@ -87,7 +87,13 @@ function simulate!(
 
         # Calculate forces on all atoms
         # TODO update force in-place
-        f = analytical_total_force(simulation_arrays, cutoff, box_size, simulation_arrays.neighborlist.point[:], simulation_arrays.neighborlist.list[:])
+        f = analytical_total_force(
+            simulation_arrays,
+            cutoff,
+            box_size,
+            simulation_arrays.neighborlist.point[:],
+            simulation_arrays.neighborlist.list[:]
+        )
         #f = analytical_total_force(r, atype, vdwTable, cutoff, box_size)
         simulation_arrays.atom_arrays.f[:] = f
         # Solve Newtons equations of motion (use vv and Andersen thermostat)

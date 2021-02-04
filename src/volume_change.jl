@@ -92,6 +92,8 @@ function volume_change_lj_MC!(
     temp,
     barostat::MonteCarloBarostat,
 )
+    point = simulation_arrays.neighborlist.point[:]
+    list = simulation_arrays.neighborlist.list[:]
 
     barostat.vol_attempt += 1
     n = length(simulation_arrays.atom_arrays.r[:])
@@ -99,7 +101,7 @@ function volume_change_lj_MC!(
     volume_old = box_size[1] * box_size[2] * box_size[3]
 
     # calculate energy of original system
-    energy_old = total_energy(simulation_arrays, cutoff, box_size)[1]
+    energy_old = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
 
     # calculate random volume change
     change_vol = (rand() - 0.5) * barostat.vmax # note vmax is actually ln(vmax)
@@ -111,7 +113,7 @@ function volume_change_lj_MC!(
     simulation_arrays.atom_arrays.r[:] =
         simulation_arrays.atom_arrays.r[:] .* (L_new / L_old)
     # calculate energy of system with new volume
-    energy_new = total_energy(simulation_arrays, cutoff, box_size)[1]
+    energy_new = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
 
     du = (energy_new - energy_old)
     dv = (volume_new - volume_old)
