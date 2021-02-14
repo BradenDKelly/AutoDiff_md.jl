@@ -1,4 +1,4 @@
-export Read_gromacs, ReadCNF, PrintPDB_argon
+export Read_gromacs, ReadCNF, PrintPDB_argon, PrintPDB
 
 """
 Reads initial structures and generates position and velocity arrays
@@ -156,6 +156,44 @@ function PrintPDB_argon(r::Vector, boxSize, step = 1, filename = "pdbOutput")
         for (i, coord) in enumerate(r)
             atomName = "Ar" #systemTop.molParams[soa.molType[i]].atoms[soa.atype[i]].atomnm
             molName = "Ar" #systemTop.molParams[soa.molType[i]].atoms[soa.atype[i]].resnm
+
+            line = @sprintf(
+                "%-6s %4d %3s %4s %5d %3s %7.3f %7.3f %7.3f %5.2f %5.2f \n",
+                "ATOM",
+                i,
+                atomName,
+                molName,
+                i,
+                " ",
+                10.0 * coord[1],
+                10.0 * coord[2],
+                10.0 * coord[3],
+                1.00,
+                0.00
+            )
+            write(file, line)
+        end
+    end
+end
+
+""" Print a pdb file for this snapshot. This is for monatomic system"""
+function PrintPDB(sa::SimulationArrays, systemTop::FFParameters, boxSize, step = 1, filename = "pdbOutput")
+
+    open(filename * "_" * string(step) * ".pdb", "w") do file
+
+        line = @sprintf(
+            "%-7s %7.3f %7.3f %7.3f %30s \n",
+            "CRYST1",
+            10.0 * boxSize[1],
+            10.0 * boxSize[2],
+            10.0 * boxSize[3],
+            "90.00  90.00  90.00 P 1           1"
+        )
+        write(file, line)
+
+        for (i, coord) in enumerate(sa.atom_arrays.r)
+            atomName = systemTop.molParams[sa.atom_arrays.molType[i]].atoms[sa.atom_arrays.atype[i]].atomnm
+            molName = systemTop.molParams[sa.atom_arrays.molType[i]].atoms[sa.atom_arrays.atype[i]].resnm
 
             line = @sprintf(
                 "%-6s %4d %3s %4s %5d %3s %7.3f %7.3f %7.3f %5.2f %5.2f \n",

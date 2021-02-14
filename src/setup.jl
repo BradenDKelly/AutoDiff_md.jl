@@ -18,9 +18,12 @@ function ReadPDB(pdbName)
                 push!(
                     coords,
                     [
-                        df * parse(Float64, line[31:38]),
-                        df * parse(Float64, line[40:46]),
-                        df * parse(Float64, line[48:55]),
+                        #df * parse(Float64, line[31:38]),
+                        #df * parse(Float64, line[40:46]),
+                        #df * parse(Float64, line[48:55]),
+                        df * parse(Float64, split(line)[6]),
+                        df * parse(Float64, split(line)[7]),
+                        df * parse(Float64, split(line)[8]),
                     ],
                 )
                 push!(atomnm, strip(line[12:15]))
@@ -612,10 +615,10 @@ function MakeAtomArrays(
                 i - 1,
                 centerOfMass,
                 zeros(SVector{4,Float64}),
-                0.0,
+                sum(mass),
                 mol,
             )
-            start = i + 1
+            start = i
             COM, mass = [], []
             push!(COM, atom.r)
             push!(mass, atom.mass)
@@ -627,10 +630,10 @@ function MakeAtomArrays(
     mol = FindMolType(String(atomsPDB.resnm[pArray[end].molNum]), molecule_list)
     molTracker[mcount+1] = Molecule(
         start,
-        pArray[end].molNum,
+        length(pArray),
         centerOfMass,
         zeros(SVector{4,Float64}),
-        0.0,
+        sum(mass),
         mol,
     )
 

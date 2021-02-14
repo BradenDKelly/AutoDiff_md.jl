@@ -1,0 +1,58 @@
+;************************************************************************
+;*              Publishing with the MolMod Database                     *
+;* Every user agrees to cite the MolMod Database upon usage as follows  *
+;* -------------------------------------------------------------------- *
+;* Simon Stephan, Martin T. Horsch, Jadran Vrabec & Hans Hasse:         *
+;* MolMod – an Open Access Database of Force Fields for Molecular       *
+;* Simulations of Fluids, Molecular Simulation, 45, 10, 806-814 (2019)  *
+;************************************************************************
+;
+;
+;                             Model data
+; --------------------------------------------------------------------
+; Substance     N2_II
+; CAS-No        7727-37-9
+; Reference     K. Stöbener, P. Klein, M. Horsch, K. Küfer and H. Hasse
+;               : Parametrization of Two-Center Lennard-Jones plus Point-
+;               Quadrupole Force Field Models by Multicriteria Optimizati
+;               on, Fluid Phase Equilibria 411, Supplement C, 33-42 (2016
+;               ), 10.1016/j.fluid.2015.11.028
+;
+[ defaults ]
+; nbfunc    comb-rule gen-pairs   fudgeLJ fudgeQQ
+    1         2           no        1       1
+
+; rigid model: use the option "all-angles" *.mdp file
+[ atomtypes ]
+; name         bond_type     mass          charge         ptype      sigma (nm)      epsilon (kJ/mol)
+  A1           A1            14.0070       0.00000        A          0.32620         0.31770
+  A2           A2            14.0070       0.00000        A          0.32620         0.31770
+
+
+[ moleculetype ]
+N2             1
+
+
+[ atoms ]
+;    nr   type   resnr   residue   atom   cgnr    charge      mass
+     1    A1     1       N2       A1     1       0.00000     14.0070
+     2    A2     1       N2       A2     1       0.00000     14.0070
+
+[ bonds ]
+;  ai    aj funct  r  k
+ 1     2     1  1.4700e-01  2.6828e+05 ;
+
+;[ constraints ]
+;     fixed   bond   length
+;                       d (nm)
+;      1       2      1  0.11900
+
+[ exclusions ]
+ 1   2
+ 2   1
+
+ [ system ]
+ N2 lennard-jones
+
+ [ molecules ]
+ N2      1000

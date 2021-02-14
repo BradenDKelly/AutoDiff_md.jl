@@ -1,10 +1,14 @@
-export grad,
+export
+    bond_force,
+    total_force_bond,
+    grad,
     lj_grad,
     total_lj_force,
     pair_force,
     numerical_total_force,
     analytical_total_force,
-    total_force
+    total_force,
+    vector
 
 include("energies.jl")
 
@@ -20,6 +24,61 @@ lj_grad(x, y, e, s, c, b) =
 lj_grad(x, y, e, s, c, b, shift) =
     -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b, shift), x)
 
+"3D vector between two `Coordinates`, accounting for mirror image sep."
+vector(coords_one::SVector, coords_two::SVector, box_size::SVector) = [
+    vector1D(coords_one[1], coords_two[1], box_size[1]),
+    vector1D(coords_one[2], coords_two[2], box_size[2]),
+    vector1D(coords_one[3], coords_two[3], box_size[3]),
+]
+
+"Force on each atom in a covalent bond."
+function bond_force(
+    coords_one::SVector,
+    coords_two::SVector,
+    springConstant::F,
+    bondLength::F,
+    box_size::SVector,
+) where F
+
+    ab = vector(coords_one, coords_two, box_size)
+    c = springConstant * (norm(ab) - bondLength)
+    f1 = c * normalize(ab)
+
+    return f1, -f1
+end
+
+"""Calculates the forces on all atoms due to covalent bonds"""
+function total_force_bond(
+    sa::SimulationArrays,
+    box_size::SVector,
+)
+    n = length(sa.atom_arrays.r[:])
+    fa = zero(Vector{Float64}(undef, 3))
+    fb = zero(Vector{Float64}(undef, 3))
+    bond_forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
+    for i = 1:length(sa.intraFF.bonds)
+        ai = sa.intraFF.bonds[i].ai
+        aj = sa.intraFF.bonds[i].aj
+
+        fa, fb = bond_force(
+            sa.atom_arrays[ai].r,
+            sa.atom_arrays[aj].r,
+            sa.intraFF.bonds[i].kparam,
+            sa.intraFF.bonds[i].bondLength,
+            box_size,
+        )
+        bond_forces[ai] += fa
+        bond_forces[aj] += fb
+        # atomArray[ai].f.x += fa[1]
+        # atomArray[aj].f.x += fb[1]
+        # atomArray[ai].f.y += fa[2]
+        # atomArray[aj].f.y += fb[2]
+        # atomArray[ai].f.z += fa[3]
+        # atomArray[aj].f.z += fb[3]
+
+    end
+    return bond_forces
+end
 
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
@@ -106,7 +165,7 @@ forces : Vector{SVector{3}}
     cutoff::T,
     box_size::SVector,
     point::Array,
-    list::Array
+    list::Array,
 ) where {T}
     n = length(sa.atom_arrays.r[:])
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
@@ -115,7 +174,7 @@ forces : Vector{SVector{3}}
 
     for i = 1:(n-1)
         ti = sa.atom_arrays.atype[i]
-        for j = point[i]:(point[i + 1] - 1)
+        for j = point[i]:(point[i+1]-1)
             k = list[j]
             tj = sa.atom_arrays.atype[k]
             dE_dr = lj_grad(
@@ -190,15 +249,19 @@ forces : Vector{SVector{3}}
     return forces
 end
 
+"""total energy of the system"""
 function analytical_total_force(
     simulation_arrays::SimulationArrays,
     cutoff,
     box_size,
     point,
-    list
+    list,
 )
-    """total energy of the system"""
-    return total_lj_force(simulation_arrays, cutoff, box_size, point, list)
+    bond_forces = total_force_bond(simulation_arrays, box_size)
+    #println("bonds: ",bond_forces[1])
+    lj_forces = total_lj_force(simulation_arrays, cutoff, box_size, point, list)
+    #println("lj: ",lj_forces[1])
+    return bond_forces + lj_forces
 end
 function analytical_total_force(
     r::Vector,

@@ -62,18 +62,18 @@ Returns
 Nothing. Updated in place.
 """
 function apply_integrator!(
-    simulation_arrays,
+    sa::SimulationArrays,
     integrator::VelocityVerlet,
     cutoff,
     box_size,
 )
 
-    n = length(simulation_arrays.atom_arrays.r[:])
+    n = length(sa.atom_arrays.r[:])
     # for simpler notation, I shift arrays to new variable names
-    r = simulation_arrays.atom_arrays.r[:]
-    v = simulation_arrays.atom_arrays.v[:]
-    f = simulation_arrays.atom_arrays.f[:]
-    m = simulation_arrays.atom_arrays.mass[:]
+    r = sa.atom_arrays.r[:]
+    v = sa.atom_arrays.v[:]
+    f = sa.atom_arrays.f[:]
+    m = sa.atom_arrays.mass[:]
 
     dt = integrator.dt
     for i = 1:n
@@ -82,17 +82,20 @@ function apply_integrator!(
         # update positons (apply periodic boundary conditions)
         r[i] = pb!(r[i] .+ v[i] .* dt, box_size[1])
     end
+    sa.atom_arrays.r[:] = r
+    sa.atom_arrays.v[:] = v
     # update forces
     f = analytical_total_force(
-        simulation_arrays, cutoff,
+        sa, cutoff,
         box_size,
-        simulation_arrays.neighborlist.point[:],
-        simulation_arrays.neighborlist.list[:]
+        sa.neighborlist.point[:],
+        sa.neighborlist.list[:]
         )
     for i = 1:n
         # update velocities
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
     end # for loop
+    sa.atom_arrays.v[:] = v
 end # function
 
 # TODO code in Langevin

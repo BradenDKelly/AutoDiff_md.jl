@@ -57,6 +57,7 @@ return sample results
 """
 function simulate!(
     simulation_arrays::SimulationArrays,
+    simulation_context::SimulationContext,
     simulation_controls::SimulationControls,
     box_size::SVector,
     nsteps,
@@ -143,13 +144,16 @@ function simulate!(
             v = simulation_arrays.atom_arrays.v[:]
             m = simulation_arrays.atom_arrays.mass[:]
             r = simulation_arrays.atom_arrays.r[:]
+            point = simulation_arrays.neighborlist.point[:]
+            list = simulation_arrays.neighborlist.list[:]
             KE = kinetic_energy(v, m)
             push!(KE_stat, KE)
             tmp = 2 * KE / (3 * n - 3) / 0.0083144621
             push!(temp_stat, tmp)
             tot_vir = virial(simulation_arrays, cutoff, box_size)
             press_f = press_full(tot_vir, n, vol, tmp)
-            PE = total_energy(simulation_arrays, cutoff, box_size)[1]
+            #PE = total_energy(simulation_arrays, cutoff, box_size)[1]
+            PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
             push!(press_stat, press_f)
             push!(ener_stat, KE + PE)
             push!(PE_stat, PE)
@@ -168,9 +172,9 @@ function simulate!(
             end
         end
 
-        # if i % 1000 == 0
-        #     PrintPDB_argon(r, box_size, i)
-        # end
+        if i % 1000 == 0
+            PrintPDB(simulation_arrays, simulation_context.topology, box_size, i)
+        end
 
 
         # step time forward

@@ -1,4 +1,5 @@
 using AutoDiff_md
+using LinearAlgebra
 using Test
 using StaticArrays
 using BenchmarkTools
@@ -146,8 +147,165 @@ LJ_force(eps, sig, r) = 48 * eps * r / r^2 * ( (sig / r)^12 - 0.5 * (sig / r)^6)
     # @test  -0.1 < props.pressure < 0.0
     # @test  -250 < props.total_energy < -240
 
+    ######### DIATOMICS ###########
+    top_file = joinpath(
+        dirname(pathof(AutoDiff_md)),
+        "../",
+        "structures",
+        "topology_files",
+        "N2_lj.top"
+    )
+    specie_location = joinpath(
+        dirname(pathof(AutoDiff_md)),
+        "../",
+        "structures",
+        "single_molecules",
+    )
+    system_location =
+        joinpath(dirname(pathof(AutoDiff_md)), "../", "structures", "whole_systems")
+    systemPDB = ReadPDB(joinpath(system_location, "N2_lj_1000.pdb"))
+    #records all FF parameters for the system
+    systemTop = ReadTopFile(top_file)
+    @test systemTop.defaults.nbfunc == 1
+    @test systemTop.defaults.combRule == 2
+    @test systemTop.defaults.genPairs == "no"
+    @test systemTop.defaults.fudgeLJ == 1.00
+    @test systemTop.defaults.fudgeQQ == 1.00
+    @test systemTop.atomTypes[1].name == "A1"
+    @test systemTop.atomTypes[2].name == "A2"
+    @test systemTop.atomTypes[1].atomicnr == "A1"
+    @test systemTop.atomTypes[1].mass == 14.007
+    @test systemTop.atomTypes[2].mass == 14.007
+    @test systemTop.atomTypes[1].charge == 0.00
+    @test systemTop.atomTypes[1].σ == 0.3262
+    @test systemTop.atomTypes[1].ϵ == 0.3177
+    @test systemTop.molParams[1].name == "N2"
+    @test systemTop.molParams[1].nrexcl == 1
+    @test length(systemTop.molParams[1].atoms) == 2
+    @test systemTop.molParams[1].atoms[1].type == "A1"
+    @test systemTop.molParams[1].atoms[1].resnr == 1
+    @test systemTop.molParams[1].atoms[1].nr == 1
+    @test systemTop.molParams[1].atoms[1].resnm == "N2"
+    @test systemTop.molParams[1].atoms[1].atomnm == "A1"
+    @test systemTop.molParams[1].atoms[1].mass == 14.007
+    @test systemTop.molParams[1].atoms[1].charge == 0.00
+    @test length(systemTop.molParams[1].bonds) == 1
+    @test systemTop.molParams[1].bonds[1].ai == 1
+    @test systemTop.molParams[1].bonds[1].aj == 2
+    @test systemTop.molParams[1].bonds[1].funct == 1
+    @test systemTop.molParams[1].bonds[1].bondLength == 0.147
+    @test systemTop.molParams[1].bonds[1].bondLength != 0.149
+    @test systemTop.molParams[1].bonds[1].kparam == 268280.0
+    @test systemTop.molParams[1].bonds[1].kparam != 2268280.0
+    @test length(systemTop.molParams[1].angles) == 0
+    @test length(systemTop.molParams[1].angles) != 1
+    @test length(systemTop.molParams[1].dihedrals) == 0
+    @test length(systemTop.molParams[1].dihedrals) != 1
 
+    for mol in specieList
+        push!(molecule_list, ReadPDB(joinpath(specie_location, mol)))
+    end
+    atom_arrays, molecule_arrays =
+        MakeAtomArrays(systemTop, systemPDB, molecule_list)
+    intraFF, vdwTable, nonbonded_matrix, scaled_pairs =
+        MakeTables(systemTop, systemPDB, molecule_list) # located in Setup.jl
+    box_size = SVector(systemPDB.box...)
+    verlet_list = VerletList(verlet_buffer, [], [], 15)
+    make_neighbor_list!(
+        atom_arrays.r,
+        nonbonded_matrix,
+        box_size,
+        cutoff,
+        verlet_list,
+    )
+    simulation_arrays = SimulationArrays(
+        atom_arrays,
+        molecule_arrays,
+        verlet_list,
+        intraFF,
+        vdwTable,
+        nonbonded_matrix,
+        scaled_pairs,
+        numbers,
+    )
+    @test length(simulation_arrays.atom_arrays) == 2000
+    @test length(simulation_arrays.molecule_arrays) == 1000
+    @test size(simulation_arrays.nonbonded_matrix) == (2000,2000)
 
+    @test simulation_arrays.atom_arrays[1].molNum == 1
+    @test simulation_arrays.atom_arrays[2].molNum == 1
+    @test simulation_arrays.atom_arrays[3].molNum == 2
+    @test simulation_arrays.atom_arrays[1998].molNum == 999
+    @test simulation_arrays.atom_arrays[1999].molNum == 1000
+    @test simulation_arrays.atom_arrays[2000].molNum == 1000
+    @test simulation_arrays.atom_arrays[2].molNum != 2
 
+    @test simulation_arrays.atom_arrays[1].molType == 1
+    @test simulation_arrays.atom_arrays[2].molType == 1
+    @test simulation_arrays.atom_arrays[3].molType == 1
+    @test simulation_arrays.atom_arrays[1998].molType == 1
+    @test simulation_arrays.atom_arrays[1999].molType == 1
+    @test simulation_arrays.atom_arrays[2000].molType == 1
+    @test simulation_arrays.atom_arrays[2].molType != 2
 
+    @test simulation_arrays.atom_arrays[1].atype == 1
+    @test simulation_arrays.atom_arrays[2].atype == 2
+    @test simulation_arrays.atom_arrays[3].atype == 1
+    @test simulation_arrays.atom_arrays[1998].atype == 2
+    @test simulation_arrays.atom_arrays[1999].atype == 1
+    @test simulation_arrays.atom_arrays[2000].atype == 2
+    @test simulation_arrays.atom_arrays[2].atype != 1
+
+    @test simulation_arrays.atom_arrays[1].mass == 14.007
+    @test simulation_arrays.atom_arrays[2].mass == 14.007
+    @test simulation_arrays.atom_arrays[3].mass == 14.007
+    @test simulation_arrays.atom_arrays[1998].mass == 14.007
+    @test simulation_arrays.atom_arrays[1999].mass == 14.007
+    @test simulation_arrays.atom_arrays[2000].mass == 14.007
+    @test simulation_arrays.atom_arrays[2].mass != 12.007
+
+    @test simulation_arrays.molecule_arrays[1].firstAtom == 1
+    @test simulation_arrays.molecule_arrays[1].lastAtom == 2
+    @test simulation_arrays.molecule_arrays[2].firstAtom == 3
+    @test simulation_arrays.molecule_arrays[2].lastAtom == 4
+    @test simulation_arrays.molecule_arrays[999].firstAtom == 1997
+    @test simulation_arrays.molecule_arrays[999].lastAtom == 1998
+    @test simulation_arrays.molecule_arrays[1000].firstAtom == 1999
+    @test simulation_arrays.molecule_arrays[1000].lastAtom == 2000
+    @test simulation_arrays.molecule_arrays[1].molType == 1
+    @test simulation_arrays.molecule_arrays[1000].molType == 1
+    @test simulation_arrays.molecule_arrays[1].mass == 28.014
+    @test simulation_arrays.molecule_arrays[1000].mass == 28.014
+
+    #= TODO
+    test FindMolType and friends
+    =#
+    function set_norm(norm)
+        # assumes one coord is at 0, 0, 0
+        # i.e., sqrt ( x^2 + y^2 + z^2) = norm, but, x = y = z
+        # sqrt(3*x^2) = norm ---> x = sqrt(norm^2 / 3 ) and x = y = z
+        r = sqrt(norm^2 / 3)
+        return SVector(r, r, r)
+    end
+    # Test bonds
+    # choose coords such that norm of difference is 1
+    coord1 = SVector(0.,0.,0.)
+    coord2 = set_norm(1.0)
+    box_size = SVector(3.,3.,3.)
+    kspring = 1.0
+    bond_length = 1.0
+    @test bond_force(coord1, coord2, kspring, bond_length, box_size) == (SVector(0,0,0), SVector(0,0,0))
+
+    # choose coords such that norm of difference is 0.5
+    normal = 0.5
+    coord2 = set_norm(normal)
+    @test norm(vector(coord1, coord2, box_size)) == normal
+    rab = vector(coord1, coord2, box_size)
+    @test norm(normalize(rab)) == 1.0
+    @test bond_force(coord1, coord2, kspring, bond_length, box_size) == (SVector(-normal * normalize(rab)... ), SVector(normal * normalize(rab)...))
+    kspring = 2000.0
+    @test bond_force(coord1, coord2, kspring, bond_length, box_size) == (SVector(-normal * kspring * normalize(rab)... ), SVector(normal * kspring * normalize(rab)...))
+    # force mirror image separation to kick in
+    box_size = SVector(0.3, 0.3, 0.3)
+    @test bond_force(coord1, coord2, kspring, bond_length, box_size) != (SVector(-normal * kspring * normalize(rab)... ), SVector(normal * kspring * normalize(rab)...))
 end
