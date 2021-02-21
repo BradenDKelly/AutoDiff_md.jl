@@ -1,6 +1,7 @@
 #using StaticArrays
-export pb!, apply_integrator!, VelocityVerlet
+export pb!, apply_molecular_pb!, apply_integrator!, VelocityVerlet
 
+include("types.jl")
 """ Periodic Boundary Conditions
 
 Parameters
@@ -13,38 +14,76 @@ box : Float64
 Returns
 Nothing. Coordinates are changed in place
 """
-function pb!(r, box)
+function pb!(r::SVector{3}, box::SVector{3})
 
     x = r[1]
     y = r[2]
     z = r[3]
 
-    if x < 0
-        x += box
-    end
-    if x > box
-        x -= box
-    end
-    if y < 0
-        y += box
-    end
-    if y > box
-        y -= box
-    end
-    if z < 0
-        z += box
-    end
-    if z > box
-        z -= box
-    end
+    if x < 0 x += box[1] end
+    if x > box[1] x -= box[1] end
+    if y < 0 y += box[2] end
+    if y > box[2] y -= box[2] end
+    if z < 0 z += box[3] end
+    if z > box[3] z -= box[3] end
 
     r = SVector{3}(x, y, z)
+    return r
 end
 
-"""Struct with parameters for Velocity Verlet integrator"""
-struct VelocityVerlet{F} <: Integrator
-    dt::F
+""" returns max and min values in an array of SVectors"""
+function maxmin(array::Vector)
+    maxVal = maximum(array[1])
+    minVal = minimum(array[1])
+
+    for svector in array
+        if maximum(svector) > maxVal
+            maxVal = maximum(svector)
+        end
+        if minimum(svector) < minVal
+            minVal = minimum(svector)
+        end
+    end
+
+    return minVal, maxVal
 end
+
+function apply_molecular_pb!(sa::SimulationArrays, box_size)
+    old_com, new_com = SVector(0, 0, 0), SVector(0, 0, 0)
+    sa.molecule_arrays.COM[:] = total_com_update!(sa)
+    for i = 1:length(sa.molecule_arrays.COM)
+        ia = sa.molecule_arrays[i].firstAtom
+        ja = sa.molecule_arrays[i].lastAtom
+        #old_com = COM(sa.atom_arrays.r[ia:ja], sa.atom_arrays.mass[ia:ja])
+        # TODO figure out this incoherent pointing that Julia is doing.
+        old_com = sa.molecule_arrays.COM[i]
+        new_com = deepcopy(old_com)
+        new_com = pb!(new_com, box_size)
+        # recent trust issues have made me put the next line in
+        sa.molecule_arrays.COM[i] = new_com
+        if new_com != old_com
+            for j = ia:ja
+                sa.atom_arrays.r[j] = sa.atom_arrays.r[j] + new_com - old_com
+            end # for
+        end # if
+    end # for
+
+    # # for troubleshooting checks that particles are in box
+    # minV, maxV = maxmin(sa.molecule_arrays.COM)
+    # #println(minV, maxV)
+    # if minV < 0.0
+    #     println("Shit, particle is less than 0")
+    # end
+    # if maxV > box_size[1]
+    #     println("Shit, particle is outside box")
+    # end
+    return sa
+end
+
+# """Struct with parameters for Velocity Verlet integrator"""
+# struct VelocityVerlet{F} <: Integrator
+#     dt::F
+# end
 
 """
 Velocity-Verlet integrator scheme.
@@ -80,21 +119,27 @@ function apply_integrator!(
         # update velocities
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
         # update positons (apply periodic boundary conditions)
-        r[i] = pb!(r[i] .+ v[i] .* dt, box_size[1])
+        #r[i] = pb!(r[i] .+ v[i] .* dt, box_size)
+        r[i] = r[i] .+ v[i] .* dt
     end
     sa.atom_arrays.r[:] = r
-    sa.atom_arrays.v[:] = v
+    # TODO remove mirror image in intramolecular calculations
+    apply_molecular_pb!(sa, box_size)
+    # TODO figure out why v doesn't point to sa.atom_arrays.v and vice versa
+    #sa.atom_arrays.v[:] = v
     # update forces
     f = analytical_total_force(
-        sa, cutoff,
+        sa,
+        cutoff,
         box_size,
         sa.neighborlist.point[:],
-        sa.neighborlist.list[:]
-        )
+        sa.neighborlist.list[:],
+    )
     for i = 1:n
         # update velocities
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]
     end # for loop
+    # TODO figure out why v doesn't point to sa.atom_arrays.v and vice versa
     sa.atom_arrays.v[:] = v
 end # function
 

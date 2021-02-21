@@ -39,6 +39,15 @@ Returns
 ----------
 tot_vir : Float64
     total virial contribution to the pressure
+
+NOTES: Allen & Tildesley 2nd Ed. pp. 62 for a good reference
+Molecular systems can be calculated using atom-atom forces - BUT - this
+requires using TOTAL force i.e., include force due to bonds/angles/torsions
+
+optionally - can use molecular version and project atom-atom forces onto
+molecule-molecule rij
+
+If using constraints, must include constraint contribution to virial
 """
 function virial(r::Vector, eps::Vector, sig::Vector, cutoff::Real, box_size)
 
@@ -82,6 +91,15 @@ Returns
 ----------
 tot_vir : Float64
     total molecular virial contribution to the pressure
+
+    NOTES: Allen & Tildesley 2nd Ed. pp. 62 for a good reference
+    Molecular systems can be calculated using atom-atom forces - BUT - this
+    requires using TOTAL force i.e., include force due to bonds/angles/torsions
+
+    optionally - can use molecular version and project atom-atom forces onto
+    molecule-molecule rij
+
+    If using constraints, must include constraint contribution to virial
 """
 function lj_virial(simulation_arrays::SimulationArrays, cutoff::Real, box_size)
 

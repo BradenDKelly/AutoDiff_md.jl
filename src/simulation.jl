@@ -117,14 +117,15 @@ function simulate!(
 
             if i % simulation_controls.barostat.pcouple == 0
 
-                r, box_size, cutoff = apply_barostat!(
+                r, com, box_size, cutoff = apply_barostat!(
                     simulation_arrays,
                     simulation_controls.barostat,
                     box_size,
                     cutoff,
                     simulation_controls.thermostat.set_temp,
                 )
-                simulation_arrays.atom_arrays.r[:] = r
+                simulation_arrays.atom_arrays.r[:] = r[:]
+                simulation_arrays.molecule_arrays.COM[:] = com[:]
                 vol = volume(box_size)
             end
         end
@@ -160,10 +161,7 @@ function simulate!(
             if i % 1000 == 0
                 @printf(
                     "Current step is %d, temp is %.3f, KE is %.3f, press is %.3f, box is %.3f\n",
-                    i,
-                    tmp,
-                    KE,
-                    #PE,
+                    i, tmp, KE, #PE,
                     press_f,
                     #KE + PE,
                     box_size[1]

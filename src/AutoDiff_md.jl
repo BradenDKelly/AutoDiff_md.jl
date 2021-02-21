@@ -17,6 +17,7 @@ using StaticArrays
 using Statistics
 using StructArrays
 
+include("directory_structure.jl")
 include("banners.jl")
 include("structs.jl") # needs to come before setup for dependency reasons
 include("barostats.jl")

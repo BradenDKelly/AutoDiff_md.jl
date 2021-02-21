@@ -15,7 +15,6 @@ export BodyFixed,
     Pairs
 
 include("types.jl")
-include("integrators.jl")
 include("neighbor_lists.jl")
 
 macro def(name, definition)
@@ -373,6 +372,11 @@ mutable struct Tables #{T<:Vector} #<: ForceField
         s = [(b[i] + b[j]) / 2 for i = 1:length(b), j = 1:length(b)]
         new(e, s)
     end
+end
+
+"""Struct with parameters for Velocity Verlet integrator"""
+struct VelocityVerlet{F} <: Integrator
+    dt::F
 end
 
 mutable struct SimulationArrays{S<:StructArray,T<:StructArray, V<:VerletList}

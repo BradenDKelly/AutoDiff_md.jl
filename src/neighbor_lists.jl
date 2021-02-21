@@ -1,6 +1,6 @@
 export VerletList, make_neighbor_list!
 
-include("types.jl")
+#include("types.jl")
 
 mutable struct VerletList{T}<:NeighborList #where T # <: NeighborList
     buffer::T

@@ -1,4 +1,9 @@
-export FindMolType, FindAtomInMol, FindNumericAtomType
+export FindMolType,
+    FindAtomInMol,
+    FindNumericAtomType,
+    COM,
+    Shift_COM_to_Zero!,
+    total_com_update!
 
 include("structs.jl")
 
@@ -34,7 +39,6 @@ end
 function COM(atoms::Vector, masses)
     totalMass = sum(masses)
     numerator = sum(atoms .* masses)
-    #println("From inside COM: ", numerator ./ totalMass)
     return numerator ./ totalMass
 end
 
@@ -78,3 +82,15 @@ function Shift_COM_to_Zero!(atm_coords, COM)
     return nothing
 
 end #Shift_COM_to_Zero
+
+"""Update all centers-of-mass"""
+function total_com_update!(sa::SimulationArrays)
+    for (indx, com) in enumerate(sa.molecule_arrays.COM)
+        i = sa.molecule_arrays[indx].firstAtom
+        j = sa.molecule_arrays[indx].lastAtom
+        #println(i, j, typeof(i), typeof(j))
+        #println(Center_of_Mass(sa.atom_arrays.r[i:j], sa.atom_arrays.mass[i:j]))
+        sa.molecule_arrays.COM[indx] = COM(sa.atom_arrays.r[i:j], sa.atom_arrays.mass[i:j])
+    end
+    return sa.molecule_arrays.COM
+end

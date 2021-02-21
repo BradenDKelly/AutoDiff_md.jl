@@ -109,14 +109,25 @@ function volume_change_lj_MC!(
     volume_new = exp(ln_vol_new)
     L_new = volume_new^(1 / 3)
     box_size = SVector(L_new, L_new, L_new)
-    cutoff = min(cutoff, L_new / 2)
-    simulation_arrays.atom_arrays.r[:] =
-        simulation_arrays.atom_arrays.r[:] .* (L_new / L_old)
+    #cutoff = min(cutoff, L_new / 2)
+    old_com = deepcopy(simulation_arrays.molecule_arrays.COM)
+    old_r = deepcopy(simulation_arrays.atom_arrays.r[:])
+    # update center of mass of molecules
+    new_com = old_com .* (L_new / L_old)
+    # update atom coordinates
+    for (this_mol, com) in enumerate(new_com)
+        ia = simulation_arrays.molecule_arrays[this_mol].firstAtom
+        ja = simulation_arrays.molecule_arrays[this_mol].lastAtom
+        # TODO should not need a loop here, a vectorized fuse should work.
+        for j = ia:ja
+            simulation_arrays.atom_arrays.r[j] += (com - old_com[this_mol])
+        end
+    end
     # calculate energy of system with new volume
     energy_new = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
-
     du = (energy_new - energy_old)
     dv = (volume_new - volume_old)
+    # walking in lnV
     test =
         -1 / (0.00831446 * temp) * (
             du + barostat.set_press * dv -
@@ -125,14 +136,18 @@ function volume_change_lj_MC!(
 
     # test if we keep this volume or the original volume
     if rand() > exp(test)
-        simulation_arrays.atom_arrays.r[:] =
-            simulation_arrays.atom_arrays.r[:] .* (L_old / L_new)
+        # reset to old coords, move failed
+        simulation_arrays.atom_arrays.r[:] = old_r[:]
+        simulation_arrays.molecule_arrays.COM[:] = old_com[:]
         box_size = SVector(L_old, L_old, L_old)
     else
+        # move was accepted, keep new coordinates and volume
         barostat.vol_accept += 1
+        simulation_arrays.molecule_arrays.COM[:] = new_com[:]
     end
     # return (does not modify in place for some reason.)
-    return simulation_arrays.atom_arrays.r[:], box_size, cutoff
+
+    return simulation_arrays.atom_arrays.r[:], simulation_arrays.molecule_arrays.COM[:], box_size, cutoff
 
     # TODO update tail corrections
     # TODO add module for optimizing vmax
