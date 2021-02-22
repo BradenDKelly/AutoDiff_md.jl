@@ -2,7 +2,7 @@
 export initial_velocity, initCubicGrid, velocity
 
 const DefaultFloat = Float64
-
+#=
 """ This assumes we are being given a set of velocities.
 We shift the velocities so that the net momentum is 0
 
@@ -19,6 +19,7 @@ Returns
 v : Vector{SVector{3}}
     vector of velocites that have center of mass velocity of zero
 """
+=#
 function initial_velocity(m::Vector, v::Vector)
 
     n = length(v)
@@ -31,7 +32,7 @@ function initial_velocity(m::Vector, v::Vector)
     return v
 end
 
-"""Creates initial positions on a lattice"""
+#"""Creates initial positions on a lattice"""
 function initCubicGrid(n::Int, rho::Real)
 
     #!------------------------------------------------------------------------
@@ -78,10 +79,11 @@ function initCubicGrid(n::Int, rho::Real)
     ],
     L
 end #function
-
+#=
 """
 Generate a random velocity from the Maxwell-Boltzmann distribution.
 """
+=#
 function velocity(T::Type, mass::Real, temp::Real; dims::Integer = 3)
     return SVector([maxwellboltzmann(T, mass, temp) for i = 1:dims]...)
 end
@@ -89,12 +91,13 @@ end
 function velocity(mass::Real, temp::Real; dims::Integer = 3)
     return velocity(DefaultFloat, mass, temp, dims = dims)
 end
-
+#=
 """
     maxwellboltzmann(mass, temperature)
     maxwellboltzmann(T, mass, temperature)
 Draw from the Maxwell-Boltzmann distribution.
 """
+=#
 function maxwellboltzmann(T::Type, mass::Real, temp::Real)
     return rand(Normal(zero(T), sqrt(0.0083144621 * temp / mass)))
 end

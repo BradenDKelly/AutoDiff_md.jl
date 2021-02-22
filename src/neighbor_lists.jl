@@ -10,6 +10,7 @@ mutable struct VerletList{T}<:NeighborList #where T # <: NeighborList
 end
 
 # TODO VerletList{Any} should be fixed to include a type T
+#=
 """
 Generates a verlet neighbor list.
 
@@ -18,6 +19,7 @@ Fortran Code https://github.com/Allen-Tildesley/examples/blob/master/verlet_list
 # In: r,r_list_box, BoxSize, nonbonded_matrix
 # Out: list,point
 """
+=#
 function make_neighbor_list!(
     r::Vector,
     nonbonded_matrix::Array{Bool,2},

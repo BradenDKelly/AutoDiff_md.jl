@@ -4,7 +4,7 @@ include("forces.jl")
 include("structs.jl")
 
 # TODO hand code LJ force calc... it is 2-3x faster than autodiff :(
-"""Vector between two coordinate values, accounting for mirror image seperation"""
+#"""Vector between two coordinate values, accounting for mirror image seperation"""
 @inline function vector1D(c1, c2, box_size)
 
     if c1 < c2
@@ -19,7 +19,7 @@ end
 function virial(simulation_arrays::SimulationArrays, cutoff, box_size)
     return lj_virial(simulation_arrays, cutoff, box_size)
 end
-
+#=
 """ Calculates the virial contribution to pressure
 
 Parameters
@@ -49,6 +49,7 @@ molecule-molecule rij
 
 If using constraints, must include constraint contribution to virial
 """
+=#
 function virial(r::Vector, eps::Vector, sig::Vector, cutoff::Real, box_size)
 
     n = length(r)
@@ -76,6 +77,7 @@ function virial(r::Vector, eps::Vector, sig::Vector, cutoff::Real, box_size)
     return tot_vir
 end
 
+#=
 """ Calculates the virial contribution to pressure
 
 Parameters
@@ -101,6 +103,7 @@ tot_vir : Float64
 
     If using constraints, must include constraint contribution to virial
 """
+=#
 function lj_virial(simulation_arrays::SimulationArrays, cutoff::Real, box_size)
 
     n = length(simulation_arrays.molecule_arrays.COM[:])

@@ -1,5 +1,6 @@
 export Read_gromacs, ReadCNF, PrintPDB_argon, PrintPDB
 
+#=
 """
 Reads initial structures and generates position and velocity arrays
 
@@ -17,6 +18,7 @@ with Maxwell-Boltzmann if we wanted.
 
 hence, "e" is actually for quaternion.
 """
+=#
 function ReadCNF(input)
     r = []
     e = []
@@ -60,7 +62,7 @@ function ReadCNF(input)
     r = [SVector{3,Float64}(r[i]...) for i = 1:length(r)]
     return r, e, box1
 end
-
+#=
 """
 Reads initial coordinates and velocity from a gromacs file
 
@@ -78,6 +80,7 @@ with Maxwell-Boltzmann if we wanted.
 
 hence, "e" is actually for quaternion.
 """
+=#
 function Read_gromacs(input)
 
     r = []
@@ -138,7 +141,7 @@ function Read_gromacs(input)
     return r, v, box1
 end
 
-""" Print a pdb file for this snapshot. This is for monatomic system"""
+#""" Print a pdb file for this snapshot. This is for monatomic system"""
 function PrintPDB_argon(r::Vector, boxSize, step = 1, filename = "pdbOutput")
 
     open(filename * "_" * string(step) * ".pdb", "w") do file
@@ -176,7 +179,7 @@ function PrintPDB_argon(r::Vector, boxSize, step = 1, filename = "pdbOutput")
     end
 end
 
-""" Print a pdb file for this snapshot. This is for monatomic system"""
+#""" Print a pdb file for this snapshot. This is for monatomic system"""
 function PrintPDB(sa::SimulationArrays, systemTop::FFParameters, boxSize, step = 1, filename = "pdbOutput")
 
     open(filename * "_" * string(step) * ".pdb", "w") do file

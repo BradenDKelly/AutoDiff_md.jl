@@ -201,7 +201,13 @@ LJ_force(eps, sig, r) = 48 * eps * r / r^2 * ( (sig / r)^12 - 0.5 * (sig / r)^6)
     @test length(systemTop.molParams[1].angles) != 1
     @test length(systemTop.molParams[1].dihedrals) == 0
     @test length(systemTop.molParams[1].dihedrals) != 1
-
+    specieList = ["N2_lj.pdb"]
+    molecule_list = []
+    temp = 119.8 * 2     # temperature (used for initial velocity)
+    dt = 0.001      # time step dimensionless
+    nsteps = 1   # number of steps to use for trajectory
+    cutoff = 1.2# nm
+    verlet_buffer = 0.2 #nm
     for mol in specieList
         push!(molecule_list, ReadPDB(joinpath(specie_location, mol)))
     end
@@ -217,6 +223,13 @@ LJ_force(eps, sig, r) = 48 * eps * r / r^2 * ( (sig / r)^12 - 0.5 * (sig / r)^6)
         box_size,
         cutoff,
         verlet_list,
+    )
+    numbers = Numbers(
+        length(atom_arrays),
+        length(molecule_arrays),
+        length(systemTop.atomTypes),
+        length(systemTop.molParams),
+        count(!iszero, atom_arrays.qq),
     )
     simulation_arrays = SimulationArrays(
         atom_arrays,
@@ -308,4 +321,82 @@ LJ_force(eps, sig, r) = 48 * eps * r / r^2 * ( (sig / r)^12 - 0.5 * (sig / r)^6)
     # force mirror image separation to kick in
     box_size = SVector(0.3, 0.3, 0.3)
     @test bond_force(coord1, coord2, kspring, bond_length, box_size) != (SVector(-normal * kspring * normalize(rab)... ), SVector(normal * kspring * normalize(rab)...))
+
+    ############################################################################
+    #
+    #                    N2 diatomic system
+    #
+    ############################################################################
+    top_file = joinpath(
+        dirname(pathof(AutoDiff_md)),
+        "../",
+        "structures",
+        "topology_files",
+        "N2_lj.top"
+        # "Ar.top",
+        #"mea_tip3p.top",
+    ) # Ar.top
+    specie_location = joinpath(
+        dirname(pathof(AutoDiff_md)),
+        "../",
+        "structures",
+        "single_molecules",
+    )  # "mea.pdb",
+    system_location =
+        joinpath(dirname(pathof(AutoDiff_md)), "../", "structures", "whole_systems")
+
+    systemPDB = ReadPDB(joinpath(system_location, "N2_lj_4_equil_ns.pdb"))
+    #records all FF parameters for the system
+    systemTop = ReadTopFile(top_file) # returns struct FFParameters # located in Setup.jl
+    specieList = ["N2_lj.pdb"] # "Ar.pdb",
+
+    molecule_list = []
+    # records all names, identifiers, coords for all starting body_fixed molecules
+    for mol in specieList
+        push!(molecule_list, ReadPDB(joinpath(specie_location, mol)))
+    end
+
+    atom_arrays, molecule_arrays =
+        MakeAtomArrays(systemTop, systemPDB, molecule_list)  # located in setup.jl
+    intraFF, vdwTable, nonbonded_matrix, scaled_pairs =
+        MakeTables(systemTop, systemPDB, molecule_list) # located in Setup.jl
+    box_size = SVector(systemPDB.box...)
+    verlet_list = VerletList(verlet_buffer, [], [], 15)
+    make_neighbor_list!(
+        atom_arrays.r,
+        nonbonded_matrix,
+        box_size,
+        cutoff,
+        verlet_list,
+    )
+
+    numbers = Numbers(
+        length(atom_arrays),
+        length(molecule_arrays),
+        length(systemTop.atomTypes),
+        length(systemTop.molParams),
+        count(!iszero, atom_arrays.qq),
+    )
+    simulation_arrays = SimulationArrays(
+        atom_arrays,
+        molecule_arrays,
+        verlet_list,
+        intraFF,
+        vdwTable,
+        nonbonded_matrix,
+        scaled_pairs,
+        numbers,
+    )
+
+    point = simulation_arrays.neighborlist.point[:]
+    list = simulation_arrays.neighborlist.list[:]
+    # potential energy with neighborlist
+    PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
+    # potential energy without neighborlist
+    PE2 = total_energy(simulation_arrays, cutoff, box_size)[1]
+    @test PE == PE2
+    @test PE != -0.014
+    # # compare with gromacs
+    @test isapprox(PE, -0.0130226, atol=1e-7, rtol=1e-7)
+
 end

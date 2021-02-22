@@ -1,6 +1,6 @@
 export MakeAtomArrays, MakeTables, OverflowTable, readNIST, ReadPDB, ReadTopFile
 
-"""Reads a pdb file"""
+#"""Reads a pdb file"""
 function ReadPDB(pdbName)
 
     molName = split(pdbName, ".")[1]
@@ -69,7 +69,7 @@ function ReadPDB(pdbName)
     return topology
 end # function ReadPDB
 
-"""Reads a gromacs .top file"""
+#"""Reads a gromacs .top file"""
 function ReadTopFile(top_file::AbstractString)
     #=
     This function is passed a topology file name. The topology is scanned and all
@@ -515,7 +515,7 @@ function ReadTopFile(top_file::AbstractString)
     return systemTopology
 end #ReadTopFile
 
-"""Makes an array of structs, then converts to StructArray for atom properties"""
+#"""Makes an array of structs, then converts to StructArray for atom properties"""
 function MakeAtomArrays(
     systemTop::FFParameters,
     atomsPDB::Topology,
@@ -523,9 +523,9 @@ function MakeAtomArrays(
     #quat::Vector{SVector{4,Float64}},
     #mode::String
 )
-    """Makes two arrays of structs, one for all atoms, the other for molecules
-    The are later converted to StructArrays
-    """
+    #"""Makes two arrays of structs, one for all atoms, the other for molecules
+    #The are later converted to StructArrays
+    #"""
 
     pArray = Vector{ParticleAtom}(undef, length(atomsPDB.resnr))
     # pArray
@@ -692,7 +692,7 @@ end # MakeAtomArrays
 #
 ################################################################################
 
-"""Make parameter tables and intramolecular FF lists and arrays"""
+#"""Make parameter tables and intramolecular FF lists and arrays"""
 function MakeTables(systemTop::FFParameters, atomsPDB::Topology, molecule_list)
 
     x = length(systemTop.atomTypes)
@@ -824,7 +824,7 @@ function MakeTables(systemTop::FFParameters, atomsPDB::Topology, molecule_list)
     return intraFF, vdwTable, nonbonded_matrix, scaled_pairs # qqTable
 end # end MakeTables
 
-"""Reads a coordinate file used by NIST for SPC/E water"""
+#"""Reads a coordinate file used by NIST for SPC/E water"""
 function readNIST(filename)
 
     LJcoords = []
@@ -915,7 +915,7 @@ function readNIST(filename)
     return SoA, qq_r, qq_q, SoArray, atomTracker
 end # function
 
-"""Tables to prevent numerical overflow from atoms/charges overlapping"""
+#"""Tables to prevent numerical overflow from atoms/charges overlapping"""
 function OverflowTable(vdwTable, qqTable, kappa)
 
     push!(logFile, "Start of vdw interaction overflow cutoffs")

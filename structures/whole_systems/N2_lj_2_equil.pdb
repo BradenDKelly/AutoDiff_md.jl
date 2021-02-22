@@ -1,0 +1,10 @@
+TITLE     N2 lennard-jones
+REMARK    THIS IS A SIMULATION BOX
+CRYST1   43.504   43.504   43.504  90.00  90.00  90.00 P 1           1
+MODEL        1
+ATOM      1  A1   N2     1       4.099  32.388  12.576  1.00  0.00
+ATOM      2  A2   N2     1       4.553  32.973  13.880  1.00  0.00
+ATOM      3  A1   N2     2       7.892  33.260  14.675  1.00  0.00
+ATOM      4  A2   N2     2       8.930  32.939  15.673  1.00  0.00
+TER
+ENDMDL

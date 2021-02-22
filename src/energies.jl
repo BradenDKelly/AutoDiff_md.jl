@@ -1,7 +1,8 @@
-export pair_energy, total_energy
+export pair_energy, total_energy, total_energy_diatomics
 
 include("structs.jl")
 
+#=
 """
 Calculates the Lennard Jones energy between two atoms
 
@@ -27,6 +28,7 @@ Returns
 e : float
     potential energy between atoms 1 and atom 2
 """
+=#
 @inline function lj_atom_pair_energy(
     r1::SVector{3},
     r2::SVector{3},
@@ -65,17 +67,18 @@ e : float
     return e
 end
 
-"""Calculates the LJ energy contribution between two molecules"""
+#"""Calculates the LJ energy contribution between two molecules"""
 @inline function lj_molec_pair_energy()
     println("In progress")
 end
 
-"""Calculates the LJ energy between a molecule and the rest of the system"""
+#"""Calculates the LJ energy between a molecule and the rest of the system"""
 @inline function lj_molec_vs_system_energy()
     println("In progress")
 
 end
 
+#=
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -101,7 +104,8 @@ Returns
 energy : float
     total lennard-jones energy of the system
 """
-@inline function total_lj_energy(
+=#
+@inline function total_lj_energy_diatomics(
     simulation_arrays::SimulationArrays,
     cutoff::T,
     box_size::SVector,
@@ -110,25 +114,38 @@ energy : float
     n = length(simulation_arrays.atom_arrays.r[:])
     energetics = [0.0 for i = 1:n]
     energy = 0.0
+    counteri = 0
+    counterj = 0
+    counterj1 = 0
     for i = 1:(n-1)
         ti = simulation_arrays.atom_arrays.atype[i]
-        for j = (i+1):n
-            tj = simulation_arrays.atom_arrays.atype[j]
-            ener = lj_atom_pair_energy(
-                simulation_arrays.atom_arrays.r[i],
-                simulation_arrays.atom_arrays.r[j],
-                simulation_arrays.vdwTable.ϵᵢⱼ[ti, tj],
-                simulation_arrays.vdwTable.σᵢⱼ[ti, tj],
-                cutoff,
-                box_size,
-            )
+        counteri +=1
+        if isodd(i)
+            m = i+2
+        else
+            m = i+1
+        end
+        for j = (m):(n)
+                tj = simulation_arrays.atom_arrays.atype[j]
+                ener = lj_atom_pair_energy(
+                    simulation_arrays.atom_arrays.r[i],
+                    simulation_arrays.atom_arrays.r[j],
+                    simulation_arrays.vdwTable.ϵᵢⱼ[ti, tj],
+                    simulation_arrays.vdwTable.σᵢⱼ[ti, tj],
+                    cutoff,
+                    box_size,
+                )
+            # end
             energy += ener
             energetics[i] += ener
+
         end
     end
+    println("energy: counteri $counteri counterj $counterj")
+    println("jenergy: $counterj1")
     return energy, energetics
 end
-
+#=
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -158,6 +175,7 @@ list : array
     energy : float
         total lennard-jones energy of the system
     """
+=#
 @inline function total_lj_energy(
     sa::SimulationArrays,
     cutoff::T,
@@ -171,7 +189,7 @@ list : array
     energy = 0.0
     for i = 1:(n-1)
         ti = sa.atom_arrays.atype[i]
-        for j = point[i]:(point[i + 1] - 1)
+        for j = point[i]:(point[i + 1] -1)
             k = list[j]
             tj = sa.atom_arrays.atype[k]
             ener = lj_atom_pair_energy(
@@ -189,16 +207,16 @@ list : array
     return energy, energetics
 end
 
-"""total energy of the system"""
-function total_energy(simulation_arrays::SimulationArrays, cutoff, box_size)
-    return total_lj_energy(simulation_arrays, cutoff, box_size)
+#"""total energy of the system"""
+function total_energy_diatomics(simulation_arrays::SimulationArrays, cutoff, box_size)
+    return total_lj_energy_diatomics(simulation_arrays, cutoff, box_size)
 end
 
-"""total energy of the system with neighbor list"""
+#"""total energy of the system with neighbor list"""
 function total_energy(simulation_arrays::SimulationArrays, cutoff, box_size, point, list)
     return total_lj_energy(simulation_arrays, cutoff, box_size, point, list)
 end
-
+#=
 """
 NOTE: OBSOLETE FUNCTION:
 
@@ -224,6 +242,7 @@ Returns
 e : float
     potential energy between atoms 1 and atom 2
 """
+=#
 @inline function pair_energy(
     r1::SVector{3},
     r2::SVector{3},
@@ -262,7 +281,7 @@ e : float
     return e
 
 end
-
+#=
 """
 Calculates the Lennard Jones energy of the system
 
@@ -278,6 +297,7 @@ Returns
 energy : float
     LJ potential energy of the system
 """
+=#
 function total_energy(
     r::Vector{SVector{3,Float64}},
     eps::Vector,

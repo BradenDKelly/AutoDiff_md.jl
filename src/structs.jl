@@ -270,7 +270,7 @@ end
 #
 # end # BodyFixed
 
-"pdb information, could be an entire system or one molecule"
+#"pdb information, could be an entire system or one molecule"
 struct Topology
     name::AbstractString
     box::Vector{Float64}
@@ -305,7 +305,7 @@ end
 #     qq::T
 # end
 
-"""Atomic properties like number, mass, coords, charge, molecule_parent"""
+#"""Atomic properties like number, mass, coords, charge, molecule_parent"""
 struct ParticleAtom <: TypeStructArray
     molNum::Int64
     molType::Int64
@@ -361,7 +361,7 @@ struct Numbers{I}
     charges::I
 end
 
-"""Struct for FF parameters (currently LJ and EXP6) """
+#"""Struct for FF parameters (currently LJ and EXP6) """
 mutable struct Tables #{T<:Vector} #<: ForceField
     # passed two 1D arrays, convert them both to 2D matrices and
     # apply geometric and arithmetic mixing rules
@@ -374,7 +374,7 @@ mutable struct Tables #{T<:Vector} #<: ForceField
     end
 end
 
-"""Struct with parameters for Velocity Verlet integrator"""
+#"""Struct with parameters for Velocity Verlet integrator"""
 struct VelocityVerlet{F} <: Integrator
     dt::F
 end
@@ -410,7 +410,7 @@ mutable struct Samples
     total_energy::Array
     iter::Int
 end
-
+#=
 """
 function Tables(a::Vector{T}, b::Vector{T}) where T
     e = [sqrt(a[i]*a[j]) for i=1:length(a), j=1:length(a)]
@@ -418,3 +418,4 @@ function Tables(a::Vector{T}, b::Vector{T}) where T
     return Tables(e,s)
 end
 """
+=#

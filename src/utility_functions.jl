@@ -42,7 +42,7 @@ function COM(atoms::Vector, masses)
     return numerator ./ totalMass
 end
 
-"Calculates the Center of Mass of a molecule"
+#"Calculates the Center of Mass of a molecule"
 function Center_of_Mass(atom_coords, mol_mass) #result (COM)
     #!============================================================================================================
 
@@ -83,7 +83,7 @@ function Shift_COM_to_Zero!(atm_coords, COM)
 
 end #Shift_COM_to_Zero
 
-"""Update all centers-of-mass"""
+#"""Update all centers-of-mass"""
 function total_com_update!(sa::SimulationArrays)
     for (indx, com) in enumerate(sa.molecule_arrays.COM)
         i = sa.molecule_arrays[indx].firstAtom

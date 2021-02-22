@@ -2,7 +2,7 @@ export MonteCarloBarostat, NoBarostat, apply_barostat!
 
 include("types.jl")
 
-"""Struct with Monte Carlo style barostat parameters"""
+#"""Struct with Monte Carlo style barostat parameters"""
 mutable struct MonteCarloBarostat{F,I} <: Barostat
     pcouple::F
     vol_attempt::I
@@ -13,7 +13,7 @@ mutable struct MonteCarloBarostat{F,I} <: Barostat
 end
 
 # TODO change eps, sig to atom_arrays and vdwTable
-"""Apply Monte Carlo style barostat"""
+#"""Apply Monte Carlo style barostat"""
 function apply_barostat!(
     simulation_array::SimulationArrays,
     barostat::MonteCarloBarostat,
@@ -26,12 +26,12 @@ function apply_barostat!(
     return r, com, box_size, cutoff
 end
 
-"""Struct for no barostat"""
+#"""Struct for no barostat"""
 struct NoBarostat <: Barostat
     use::Bool
 end
 
-"""Apply no barostat"""
+#"""Apply no barostat"""
 function apply_barostat!(
     r,
     box_size,

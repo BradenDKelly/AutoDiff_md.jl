@@ -12,26 +12,26 @@ export
 
 include("energies.jl")
 
-""" Calculates the force between two atoms using ForwardDiff"""
+#""" Calculates the force between two atoms using ForwardDiff"""
 grad(x, y, e1, e2, s1, s2, c, b) =
     -ForwardDiff.gradient(x -> pair_energy(x, y, e1, e2, s1, s2, c, b), x)
 
-""" Calculates the force between two atoms using ForwardDiff"""
+#""" Calculates the force between two atoms using ForwardDiff"""
 lj_grad(x, y, e, s, c, b) =
     -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b), x)
 
-""" Calculates the force between two atoms using ForwardDiff"""
+#""" Calculates the force between two atoms using ForwardDiff"""
 lj_grad(x, y, e, s, c, b, shift) =
     -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b, shift), x)
 
-"3D vector between two `Coordinates`, accounting for mirror image sep."
+#"3D vector between two `Coordinates`, accounting for mirror image sep."
 vector(coords_one::SVector, coords_two::SVector, box_size::SVector) = [
     vector1D(coords_one[1], coords_two[1], box_size[1]),
     vector1D(coords_one[2], coords_two[2], box_size[2]),
     vector1D(coords_one[3], coords_two[3], box_size[3]),
 ]
 
-"Force on each atom in a covalent bond."
+#"Force on each atom in a covalent bond."
 function bond_force(
     coords_one::SVector,
     coords_two::SVector,
@@ -47,7 +47,7 @@ function bond_force(
     return f1, -f1
 end
 
-"""Calculates the forces on all atoms due to covalent bonds"""
+#"""Calculates the forces on all atoms due to covalent bonds"""
 function total_force_bond(
     sa::SimulationArrays,
     box_size::SVector,
@@ -79,7 +79,7 @@ function total_force_bond(
     end
     return bond_forces
 end
-
+#=
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -105,6 +105,7 @@ Returns
 forces : Vector{SVector{3}}
     Vector of forces, where each element is the x, y, z forces on that atom
 """
+=#
 @inline function total_lj_force2(
     simulation_arrays::SimulationArrays,
     cutoff::T,
@@ -133,7 +134,7 @@ forces : Vector{SVector{3}}
     end
     return forces
 end
-
+#=
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 and neighborlist
@@ -160,6 +161,7 @@ Returns
 forces : Vector{SVector{3}}
     Vector of forces, where each element is the x, y, z forces on that atom
 """
+=#
 @inline function total_lj_force(
     sa::SimulationArrays,
     cutoff::T,
@@ -169,9 +171,6 @@ forces : Vector{SVector{3}}
 ) where {T}
     n = length(sa.atom_arrays.r[:])
     forces = [SVector{3}(0.0, 0.0, 0.0) for i = 1:n]
-    #point = simulation_arrays.neighborlist.point[:]
-    #list = simulation_arrays.neighborlist.list[:]
-
     for i = 1:(n-1)
         ti = sa.atom_arrays.atype[i]
         for j = point[i]:(point[i+1]-1)
@@ -191,7 +190,7 @@ forces : Vector{SVector{3}}
     end
     return forces
 end
-
+#=
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -217,6 +216,7 @@ Returns
 forces : Vector{SVector{3}}
     Vector of forces, where each element is the x, y, z forces on that atom
 """
+=#
 @inline function total_lj_force(
     r::Vector,
     atype::Vector,
@@ -249,7 +249,7 @@ forces : Vector{SVector{3}}
     return forces
 end
 
-"""total energy of the system"""
+#"""total energy of the system"""
 function analytical_total_force(
     simulation_arrays::SimulationArrays,
     cutoff,
@@ -263,6 +263,8 @@ function analytical_total_force(
     #println("lj: ",lj_forces[1])
     return bond_forces + lj_forces
 end
+
+#"""total energy of the system"""
 function analytical_total_force(
     r::Vector,
     atype::Vector,
@@ -270,10 +272,10 @@ function analytical_total_force(
     cutoff,
     box_size,
 )
-    """total energy of the system"""
+
     return total_lj_force(r, atype, vdwTable, cutoff, box_size)
 end
-
+#=
 """
 Calculates the Lennard Jones Force between two atoms
 
@@ -294,6 +296,7 @@ f2 : SVector{3}
     SVector with x, y, z forces on atom 2
 
 """
+=#
 @inline function pair_force(
     r1::SVector{3,Float64},
     r2::SVector{3,Float64},
@@ -328,7 +331,7 @@ f2 : SVector{3}
     # return forces between atom 1 and atom 2
     return f1, f2
 end
-
+#=
 """
 Calculates the Lennard Jones forces on all atoms using numerical derivatives
 
@@ -344,6 +347,7 @@ Returns
 forces : Vector{SVector{3}}
     Vector of forces, where each element is the x, y, z forces on that atom
 """
+=#
 function numerical_total_force(
     r::Vector{SVector{3,Float64}},
     box_size::SVector{3,Float64},
@@ -383,7 +387,7 @@ function numerical_total_force(
     end
     return forces
 end
-
+#=
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
 
@@ -399,6 +403,7 @@ Returns
 forces : Vector{SVector{3}}
     Vector of forces, where each element is the x, y, z forces on that atom
 """
+=#
 function analytical_total_force(
     r::Vector{SVector{3,Float64}},
     eps::Vector,
@@ -429,6 +434,7 @@ function analytical_total_force(
     return forces
 end
 
+#=
 """
 Calculates the Lennard Jones forces on all atoms using by-hand
 analytical derivatives
@@ -445,6 +451,7 @@ Returns
 forces : Vector{SVector{3}}
     Vector of forces, where each element is the x, y, z forces on that atom
 """
+=#
 function total_force(
     r::Vector{SVector{3,Float64}},
     box_size::SVector{3,Float64},

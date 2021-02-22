@@ -1,5 +1,6 @@
 export volume_change_lj_MC!
 
+#=
 """Changes the volume of the simulation box using stat mech
 Parameters
 ----------
@@ -25,6 +26,7 @@ vmax : Float
 Returns
 r, boxsize, cutoff for the new volume
 """
+=#
 function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
 
     n = length(r)
@@ -64,6 +66,7 @@ function volume_change_lj_MC!(r, box_size, cutoff, eps, sig, temp, press, vmax)
     # TODO update tail corrections
 end
 
+#=
 """Changes the volume of the simulation box using stat mech
     Parameters
     ----------
@@ -85,6 +88,7 @@ end
     Returns
     r, boxsize, cutoff for the new volume
 """
+=#
 function volume_change_lj_MC!(
     simulation_arrays::SimulationArrays,
     box_size,

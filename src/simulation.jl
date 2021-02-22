@@ -5,7 +5,37 @@ include("energies.jl")
 include("integrators.jl")
 include("thermo_functions.jl")
 
-"""
+
+function sampler!(simulation_arrays, ind, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, cutoff, box_size)
+    v = simulation_arrays.atom_arrays.v[:]
+    m = simulation_arrays.atom_arrays.mass[:]
+    r = simulation_arrays.atom_arrays.r[:]
+    point = simulation_arrays.neighborlist.point[:]
+    list = simulation_arrays.neighborlist.list[:]
+    n = length(r)
+    KE = kinetic_energy(v, m)
+    push!(KE_stat, KE)
+    tmp = 2 * KE / (3 * n - 3) / 0.0083144621
+    push!(temp_stat, tmp)
+    vol = volume(box_size)
+    tot_vir = virial(simulation_arrays, cutoff, box_size)
+    press_f = press_full(tot_vir, n, vol, tmp)
+    #PE = total_energy(simulation_arrays, cutoff, box_size)[1] # no neighbor list
+    PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
+    push!(press_stat, press_f)
+    push!(ener_stat, KE + PE)
+    push!(PE_stat, PE)
+    if ind % 1000 == 0 || ind == 1
+        @printf(
+            "Current step is %d, temp is %.3f, KE is %.3f, PE is %.3f, TE is %.3f, press is %.3f, box is %.3f\n",
+            ind, tmp, KE, PE, KE + PE,
+            press_f,
+            box_size[1]
+        )
+    end
+end
+
+#="""
 The main loop for generating the molecular dynamics trajectory
 
 Parameters
@@ -55,6 +85,7 @@ Returns
 Currently just prints samples, but if it was actually to be used, it would
 return sample results
 """
+=#
 function simulate!(
     simulation_arrays::SimulationArrays,
     simulation_context::SimulationContext,
@@ -83,6 +114,9 @@ function simulate!(
     KE_stat = []
     PE_stat = []
     t = 0
+
+    sampler!(simulation_arrays, 0, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, cutoff, box_size)
+
 
     for i = 1:nsteps
 
@@ -141,33 +175,8 @@ function simulate!(
         # Sample some things
         # TODO tidy this little gong-show up.
         # make struct for holding properties, make module for calling sampling
-        if i % 100 == 0
-            v = simulation_arrays.atom_arrays.v[:]
-            m = simulation_arrays.atom_arrays.mass[:]
-            r = simulation_arrays.atom_arrays.r[:]
-            point = simulation_arrays.neighborlist.point[:]
-            list = simulation_arrays.neighborlist.list[:]
-            KE = kinetic_energy(v, m)
-            push!(KE_stat, KE)
-            tmp = 2 * KE / (3 * n - 3) / 0.0083144621
-            push!(temp_stat, tmp)
-            tot_vir = virial(simulation_arrays, cutoff, box_size)
-            press_f = press_full(tot_vir, n, vol, tmp)
-            #PE = total_energy(simulation_arrays, cutoff, box_size)[1]
-            PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
-            push!(press_stat, press_f)
-            push!(ener_stat, KE + PE)
-            push!(PE_stat, PE)
-            if i % 1000 == 0
-                @printf(
-                    "Current step is %d, temp is %.3f, KE is %.3f, press is %.3f, box is %.3f\n",
-                    i, tmp, KE, #PE,
-                    press_f,
-                    #KE + PE,
-                    box_size[1]
-                )
-                #println("coords $(r[1]), $(r[250]), $(r[500]), $(r[750]), $(r[1000])")
-            end
+        if i % 100 == 0 || i == 1
+            sampler!(simulation_arrays, i, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, cutoff, box_size)
         end
 
         if i % 1000 == 0
@@ -227,7 +236,7 @@ function simulate!(
 end
 
 # TODO contemplate discarding array style function
-"""
+#="""
 The main loop for generating the molecular dynamics trajectory
 
 Parameters
@@ -264,6 +273,7 @@ Returns
 Currently just prints samples, but if it was actually to be used, it would
 return sample results
 """
+=#
 function simulate!(
     r,
     v,

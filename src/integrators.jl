@@ -2,6 +2,7 @@
 export pb!, apply_molecular_pb!, apply_integrator!, VelocityVerlet
 
 include("types.jl")
+#=
 """ Periodic Boundary Conditions
 
 Parameters
@@ -14,11 +15,10 @@ box : Float64
 Returns
 Nothing. Coordinates are changed in place
 """
+=#
 function pb!(r::SVector{3}, box::SVector{3})
 
-    x = r[1]
-    y = r[2]
-    z = r[3]
+    x, y, z = r[1], r[2], r[3]
 
     if x < 0 x += box[1] end
     if x > box[1] x -= box[1] end
@@ -84,7 +84,7 @@ end
 # struct VelocityVerlet{F} <: Integrator
 #     dt::F
 # end
-
+#=
 """
 Velocity-Verlet integrator scheme.
 
@@ -100,6 +100,7 @@ box_size : SVector{3}
 Returns
 Nothing. Updated in place.
 """
+=#
 function apply_integrator!(
     sa::SimulationArrays,
     integrator::VelocityVerlet,
@@ -126,7 +127,6 @@ function apply_integrator!(
     # TODO remove mirror image in intramolecular calculations
     apply_molecular_pb!(sa, box_size)
     # TODO figure out why v doesn't point to sa.atom_arrays.v and vice versa
-    #sa.atom_arrays.v[:] = v
     # update forces
     f = analytical_total_force(
         sa,
@@ -167,7 +167,7 @@ end
 #     b_propagator(soa, dt / 2.0, n)
 # end
 
-"""Implements the A propagator (drift)"""
+#"""Implements the A propagator (drift)"""
 function a_propagator(t::Real, n::Int64, soa, boxSize)
     # in: t,soa, boxSize
     # t is typically timestep / 2
@@ -179,7 +179,7 @@ function a_propagator(t::Real, n::Int64, soa, boxSize)
     pbc!(soa, r, n, boxSize)
 end
 
-""" Update Velocity """
+#""" Update Velocity """
 function b_propagator(soa, t, n)
     @inbounds for i = 1:n
         soa.v[i] = soa.v[i] + soa.f[i] * t
