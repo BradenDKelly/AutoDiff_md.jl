@@ -1,5 +1,6 @@
 export
     bond_force,
+    bond_grad,
     total_force_bond,
     grad,
     lj_grad,
@@ -23,6 +24,9 @@ lj_grad(x, y, e, s, c, b) =
 #""" Calculates the force between two atoms using ForwardDiff"""
 lj_grad(x, y, e, s, c, b, shift) =
     -ForwardDiff.gradient(x -> lj_atom_pair_energy(x, y, e, s, c, b, shift), x)
+
+bond_grad(x, y, k, l, b) =
+    -ForwardDiff.gradient(x -> spring_energy(x, y, k, l, b), x)
 
 #"3D vector between two `Coordinates`, accounting for mirror image sep."
 vector(coords_one::SVector, coords_two::SVector, box_size::SVector) = [
@@ -60,7 +64,8 @@ function total_force_bond(
         ai = sa.intraFF.bonds[i].ai
         aj = sa.intraFF.bonds[i].aj
 
-        fa, fb = bond_force(
+        #fa, fb = bond_force(
+        fa = bond_grad(
             sa.atom_arrays[ai].r,
             sa.atom_arrays[aj].r,
             sa.intraFF.bonds[i].kparam,
@@ -68,7 +73,8 @@ function total_force_bond(
             box_size,
         )
         bond_forces[ai] += fa
-        bond_forces[aj] += fb
+        #bond_forces[aj] += fb
+        bond_forces[aj] += -fa
         # atomArray[ai].f.x += fa[1]
         # atomArray[aj].f.x += fb[1]
         # atomArray[ai].f.y += fa[2]

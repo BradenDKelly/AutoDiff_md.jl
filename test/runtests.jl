@@ -391,12 +391,83 @@ LJ_force(eps, sig, r) = 48 * eps * r / r^2 * ( (sig / r)^12 - 0.5 * (sig / r)^6)
     point = simulation_arrays.neighborlist.point[:]
     list = simulation_arrays.neighborlist.list[:]
     # potential energy with neighborlist
-    PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
+    PE = total_lj_energy(simulation_arrays, cutoff, box_size, point, list)[1]
     # potential energy without neighborlist
-    PE2 = total_energy(simulation_arrays, cutoff, box_size)[1]
+    PE2 = total_energy_diatomics(simulation_arrays, cutoff, box_size)[1]
     @test PE == PE2
     @test PE != -0.014
     # # compare with gromacs
     @test isapprox(PE, -0.0130226, atol=1e-7, rtol=1e-7)
+
+    ##################
+    #   N2 system of size 500
+    #############################
+    systemPDB = ReadPDB(joinpath(system_location, "N2_lj_500_equil_ns.pdb"))
+    #records all FF parameters for the system
+    systemTop = ReadTopFile(top_file) # returns struct FFParameters # located in Setup.jl
+    specieList = ["N2_lj.pdb"] # "Ar.pdb",
+
+    molecule_list = []
+    # records all names, identifiers, coords for all starting body_fixed molecules
+    for mol in specieList
+        push!(molecule_list, ReadPDB(joinpath(specie_location, mol)))
+    end
+
+    atom_arrays, molecule_arrays =
+        MakeAtomArrays(systemTop, systemPDB, molecule_list)  # located in setup.jl
+    intraFF, vdwTable, nonbonded_matrix, scaled_pairs =
+        MakeTables(systemTop, systemPDB, molecule_list) # located in Setup.jl
+    box_size = SVector(systemPDB.box...)
+    verlet_list = VerletList(verlet_buffer, [], [], 15)
+    make_neighbor_list!(
+        atom_arrays.r,
+        nonbonded_matrix,
+        box_size,
+        cutoff,
+        verlet_list,
+    )
+
+    simulation_arrays = SimulationArrays(
+        atom_arrays,
+        molecule_arrays,
+        verlet_list,
+        intraFF,
+        vdwTable,
+        nonbonded_matrix,
+        scaled_pairs,
+        numbers,
+    )
+
+    point = simulation_arrays.neighborlist.point[:]
+    list = simulation_arrays.neighborlist.list[:]
+    # potential energy with neighborlist
+    PE = total_lj_energy(simulation_arrays, cutoff, box_size, point, list)[1]
+    # potential energy without neighborlist
+    PE2 = total_energy_diatomics(simulation_arrays, cutoff, box_size)[1]
+    @test PE == PE2
+    @test PE != -533.1
+    # # compare with gromacs
+    @test isapprox(PE, -533.628, atol=1e-3, rtol=1e-3)
+    ###############
+    #  Test bond energies and forces
+    ######################
+    bond_energy = total_bond_energy(simulation_arrays, box_size)
+    # compare with gromacs 2020.5
+    @test isapprox(bond_energy, 542.473, atol=1e-3, rtol=1e-3)
+    r1 = SVector(0.0, 0.0, 0.0)
+    r2 = coord2 = set_norm(0.15)
+    k = 50000.0
+    bl = 0.15
+    vec1 = bond_grad(r1, r2, k, bl, box_size)
+    vec2, vec3 = bond_force(r1, r2, k, bl, box_size)
+    @test vec1 == vec2
+    @test vec1 == r1
+    r2 = coord2 = set_norm(0.10)
+    vec1 = bond_grad(r1, r2, k, bl, box_size)
+    vec2, vec3 = bond_force(r1, r2, k, bl, box_size)
+    @test vec1 == vec2
+    @test vec1 != r1
+    @test vec2 == -vec3
+    @test vec1 == -vec3
 
 end

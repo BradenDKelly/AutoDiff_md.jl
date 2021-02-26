@@ -135,6 +135,7 @@ function apply_integrator!(
         sa.neighborlist.point[:],
         sa.neighborlist.list[:],
     )
+
     for i = 1:n
         # update velocities
         v[i] = v[i] .+ 0.5 .* dt .* f[i] ./ m[i]

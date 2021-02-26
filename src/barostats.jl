@@ -21,9 +21,9 @@ function apply_barostat!(
     cutoff,
     temp,
 )
-    r, com, box_size, cutoff =
+    r, com, box_size, cutoff, nl =
         volume_change_lj_MC!(simulation_array, box_size, cutoff, temp, barostat)
-    return r, com, box_size, cutoff
+    return r, com, box_size, cutoff, nl
 end
 
 #"""Struct for no barostat"""

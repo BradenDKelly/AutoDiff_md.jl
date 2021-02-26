@@ -1,7 +1,13 @@
-export pair_energy, total_energy, total_energy_diatomics
+export pair_energy, total_energy, total_energy_diatomics,
+ total_bond_energy, spring_energy, total_lj_energy
 
 include("structs.jl")
-
+#"3D vector between two `Coordinates`, accounting for mirror image sep."
+vector(coords_one::SVector, coords_two::SVector, box_size::SVector) = [
+    vector1D(coords_one[1], coords_two[1], box_size[1]),
+    vector1D(coords_one[2], coords_two[2], box_size[2]),
+    vector1D(coords_one[3], coords_two[3], box_size[3]),
+]
 #=
 """
 Calculates the Lennard Jones energy between two atoms
@@ -78,6 +84,42 @@ end
 
 end
 
+@inline function spring_energy(
+    coords_one::SVector,
+    coords_two::SVector,
+    springConstant::F,
+    bondLength::F,
+    box_size::SVector,
+) where F
+
+    # TODO since using molecular PBC, don't need mirror image, but, safer
+    ab = vector(coords_one, coords_two, box_size)
+    energy = 0.5 * springConstant * (norm(ab) - bondLength)^2
+    return energy
+end
+
+#"""Calculates the forces on all atoms due to covalent bonds"""
+function total_bond_energy(
+    sa::SimulationArrays,
+    box_size::SVector,
+)
+    bond_energy = 0.0
+    ener = 0.0
+    for i = 1:length(sa.intraFF.bonds)
+        ai = sa.intraFF.bonds[i].ai
+        aj = sa.intraFF.bonds[i].aj
+        #ener = spring_energy(4.0)
+        ener = spring_energy(
+            sa.atom_arrays[ai].r,
+            sa.atom_arrays[aj].r,
+            sa.intraFF.bonds[i].kparam,
+            sa.intraFF.bonds[i].bondLength,
+            box_size
+        )
+        bond_energy += ener
+    end
+    return bond_energy
+end
 #=
 """
 Calculates the Lennard Jones forces on all atoms using AutoDifferentiation
@@ -114,12 +156,9 @@ energy : float
     n = length(simulation_arrays.atom_arrays.r[:])
     energetics = [0.0 for i = 1:n]
     energy = 0.0
-    counteri = 0
-    counterj = 0
-    counterj1 = 0
+
     for i = 1:(n-1)
         ti = simulation_arrays.atom_arrays.atype[i]
-        counteri +=1
         if isodd(i)
             m = i+2
         else
@@ -141,8 +180,6 @@ energy : float
 
         end
     end
-    println("energy: counteri $counteri counterj $counterj")
-    println("jenergy: $counterj1")
     return energy, energetics
 end
 #=
@@ -209,12 +246,16 @@ end
 
 #"""total energy of the system"""
 function total_energy_diatomics(simulation_arrays::SimulationArrays, cutoff, box_size)
+    println("intra energies not included in total energy diatomics")
     return total_lj_energy_diatomics(simulation_arrays, cutoff, box_size)
 end
 
 #"""total energy of the system with neighbor list"""
 function total_energy(simulation_arrays::SimulationArrays, cutoff, box_size, point, list)
-    return total_lj_energy(simulation_arrays, cutoff, box_size, point, list)
+    lj_energy = total_lj_energy(simulation_arrays, cutoff, box_size, point, list)[1]
+    bond_energy = total_bond_energy(simulation_arrays, box_size)
+    total = lj_energy + bond_energy
+    return total
 end
 #=
 """

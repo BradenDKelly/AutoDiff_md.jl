@@ -6,30 +6,37 @@ include("integrators.jl")
 include("thermo_functions.jl")
 
 
-function sampler!(simulation_arrays, ind, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, cutoff, box_size)
+function sampler!(simulation_arrays, ind, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, vir_tens, cutoff, box_size)
     v = simulation_arrays.atom_arrays.v[:]
     m = simulation_arrays.atom_arrays.mass[:]
     r = simulation_arrays.atom_arrays.r[:]
     point = simulation_arrays.neighborlist.point[:]
     list = simulation_arrays.neighborlist.list[:]
     n = length(r)
+    nmol = length(simulation_arrays.molecule_arrays)
     KE = kinetic_energy(v, m)
     push!(KE_stat, KE)
     tmp = 2 * KE / (3 * n - 3) / 0.0083144621
     push!(temp_stat, tmp)
     vol = volume(box_size)
     tot_vir = virial(simulation_arrays, cutoff, box_size)
-    press_f = press_full(tot_vir, n, vol, tmp)
+    ke_tensor = kinetic_energy_tensor(simulation_arrays)
+
+    press_f = press_full(tot_vir, nmol, vol, tmp)
+    press_tensor = press_full_tensor(simulation_arrays, cutoff, box_size, tmp)
     #PE = total_energy(simulation_arrays, cutoff, box_size)[1] # no neighbor list
     PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
+    tot_tensor, tenss = pressure_from_tensors(simulation_arrays, cutoff, box_size)
+    push!(vir_tens, tenss)
     push!(press_stat, press_f)
     push!(ener_stat, KE + PE)
     push!(PE_stat, PE)
     if ind % 1000 == 0 || ind == 1
         @printf(
-            "Current step is %d, temp is %.3f, KE is %.3f, PE is %.3f, TE is %.3f, press is %.3f, box is %.3f\n",
-            ind, tmp, KE, PE, KE + PE,
-            press_f,
+            "Current step is %d, temp is %.3f, KE is %.3f, KE_tens is %.3f, PE is %.3f, TE is %.3f, press is %.3f, tensor is %.3f, IG is %.3f, tensor is %.3f,box is %.3f\n",
+            ind, tmp, KE, tr(ke_tensor), PE, KE + PE,
+            press_f, press_tensor, nmol * 0.0083144621 * tmp / vol,
+            tot_tensor,
             box_size[1]
         )
     end
@@ -113,9 +120,10 @@ function simulate!(
     ener_stat = []
     KE_stat = []
     PE_stat = []
+    vir_tens = []
     t = 0
 
-    sampler!(simulation_arrays, 0, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, cutoff, box_size)
+    sampler!(simulation_arrays, 0, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, vir_tens, cutoff, box_size)
 
 
     for i = 1:nsteps
@@ -151,7 +159,7 @@ function simulate!(
 
             if i % simulation_controls.barostat.pcouple == 0
 
-                r, com, box_size, cutoff = apply_barostat!(
+                r, com, box_size, cutoff, nl= apply_barostat!(
                     simulation_arrays,
                     simulation_controls.barostat,
                     box_size,
@@ -160,6 +168,7 @@ function simulate!(
                 )
                 simulation_arrays.atom_arrays.r[:] = r[:]
                 simulation_arrays.molecule_arrays.COM[:] = com[:]
+                simulation_arrays.neighborlist = nl
                 vol = volume(box_size)
             end
         end
@@ -176,10 +185,10 @@ function simulate!(
         # TODO tidy this little gong-show up.
         # make struct for holding properties, make module for calling sampling
         if i % 100 == 0 || i == 1
-            sampler!(simulation_arrays, i, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, cutoff, box_size)
+            sampler!(simulation_arrays, i, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, vir_tens, cutoff, box_size)
         end
 
-        if i % 1000 == 0
+        if i % 1000 == 0 || i == 1
             PrintPDB(simulation_arrays, simulation_context.topology, box_size, i)
         end
 
@@ -187,6 +196,7 @@ function simulate!(
         # step time forward
         t += simulation_controls.integrator.dt
     end
+    println("average virial tensor was: ", mean(vir_tens))
     println("average temperature was: ", mean(temp_stat))
     println(
         "average pressure was: ",
