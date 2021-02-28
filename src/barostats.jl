@@ -14,6 +14,31 @@ mutable struct MonteCarloBarostat{F,I} <: Barostat
     set_press::F
     vmax::F
     use::Bool
+    function MonteCarloBarostat(
+        ;set_press,
+        vmax,
+        use=true,
+        interval = 10.0,
+        vol_attempt = 0,
+        vol_accept = 0,
+        prev_attempt = 0,
+        prev_accept = 0,
+        update_vmax = 10,
+        acceptance_ratio = 0.4,
+    )
+        new{typeof(interval), typeof(vol_attempt)}(
+            interval,
+            vol_attempt,
+            vol_accept,
+            prev_attempt,
+            prev_accept,
+            update_vmax,
+            acceptance_ratio,
+            set_press,
+            vmax,
+            use,
+        )
+    end
 end
 
 # TODO change eps, sig to atom_arrays and vdwTable
@@ -28,7 +53,7 @@ function apply_barostat!(
     r, com, box_size, cutoff, nl =
         volume_change_lj_MC!(simulation_array, box_size, cutoff, temp, barostat)
     if barostat.vol_attempt % barostat.update == 0
-        optimize_volume_change_step!(barostat, volume(box_size)*0.1)
+        optimize_volume_change_step!(barostat, volume(box_size) * 0.1)
     end
     #println("$(barostat.vmax), $(barostat.vol_attempt)")
     return r, com, box_size, cutoff, nl
