@@ -5,6 +5,9 @@ export AndersenThermostat, apply_thermostat
 struct AndersenThermostat{T} <: Thermostat
     bath_couple::T
     set_temp::T
+    function AndersenThermostat(;bath_couple=1.0, set_temp)
+        new{typeof(bath_couple)}(bath_couple, set_temp)
+    end
 end
 
 #"""Applies the passed thermostat"""
