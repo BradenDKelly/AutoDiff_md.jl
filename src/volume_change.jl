@@ -118,79 +118,33 @@ function volume_change_lj_MC!(
 
     barostat.vol_attempt += 1
     n = length(simulation_arrays.atom_arrays.r[:])
-    rememb = deepcopy(simulation_arrays.atom_arrays.r[1])
-    rememb2 = deepcopy(simulation_arrays.atom_arrays.r[2])
-    L_old = box_size[1]
-    volume_old = box_size[1] * box_size[2] * box_size[3]
+    #rememb = deepcopy(simulation_arrays.atom_arrays.r[1])
+    #rememb2 = deepcopy(simulation_arrays.atom_arrays.r[2])
+    old_box = deepcopy(box_size)
+    #L_old = box_size[1]
+    #volume_old = box_size[1] * box_size[2] * box_size[3]
 
     # calculate energy of original system
     energy_old = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
 
     # calculate random volume change
     change_vol = (rand() - 0.5) * barostat.vmax # note vmax is actually ln(vmax)
-    ln_vol_new = volume_old + change_vol
-    volume_new = ln_vol_new
-    L_new = volume_new^(1 / 3)
-    box_size = SVector(L_new, L_new, L_new)
-    #cutoff = min(cutoff, L_new / 2)
+    #ln_vol_new = volume_old + change_vol
+    #volume_new = ln_vol_new
+    #L_new = volume_new^(1 / 3)
+    #box_size = SVector(L_new, L_new, L_new)
+    # update centers-of-mass coords
     simulation_arrays.molecule_arrays.COM[:] = total_com_update!(simulation_arrays)
     old_com = deepcopy(simulation_arrays.molecule_arrays.COM)
     old_r = deepcopy(simulation_arrays.atom_arrays.r[:])
     # update center of mass of molecules
-    new_com = deepcopy(old_com .* (L_new / L_old))
-    # println("new scaling is $(L_new / L_old)")
-    # for i = 1:length(new_com)
-    #     println("i $i newcom $(new_com[i]) oldcom $(old_com[i])")
-    # end
+    #new_atoms_positions, new_com, box_size = change_volume_molecular(simulation_arrays, change_vol, box_size)
+    new_atoms_positions, new_com, box_size = change_volume_atomic(simulation_arrays, change_vol, box_size)
+    #new_com = deepcopy(old_com .* (L_new / L_old))
+    simulation_arrays.molecule_arrays.COM[:] = new_com
+    simulation_arrays.atom_arrays.r[:] = new_atoms_positions
 
-    # update atom coordinates
-    old_bonds = []
-    for i=1:2:n
-        dist = norm(simulation_arrays.atom_arrays.r[i]- simulation_arrays.atom_arrays.r[i+1])
-        push!(old_bonds, dist)
-        if dist > 0.2
-            println("SHIT particles $i, $(i+1) too far apart, $dist")
-        end
-    end
-    # for troubleshooting checks that particles are in box
-    minV, maxV = maxmin(new_com)
-    #println(minV, maxV)
-    if minV < 0.0
-        println("Shit, particle is less than 0")
-    end
-    if maxV > box_size[1]
-        println("Shit, particle is outside box")
-    end
-
-    for this_mol = 1:length(new_com)
-        ia = simulation_arrays.molecule_arrays[this_mol].firstAtom
-        ja = simulation_arrays.molecule_arrays[this_mol].lastAtom
-        # TODO should not need a loop here, a vectorized fuse should work.
-        for j = ia:ja
-            simulation_arrays.atom_arrays.r[j] = simulation_arrays.atom_arrays.r[j] + (new_com[this_mol] - old_com[this_mol])
-        end
-    end
-    #println("$(simulation_arrays.atom_arrays.r[1]), old was $rememb")
-    #println("$(simulation_arrays.atom_arrays.r[2]), old was $rememb2")
-    #sleep(180)
-    new_bonds = []
-    for i=1:2:n
-        dist = norm(simulation_arrays.atom_arrays.r[i]- simulation_arrays.atom_arrays.r[i+1])
-        push!(new_bonds, dist)
-        if dist > 0.2
-            println("SHIT particles $i, $(i+1) too far apart, $dist")
-        end
-    end
-    # for i=1:length(old_bonds)
-    #     if !isapprox(old_bonds[i], new_bonds[i], atol=1e-5, rtol=1e-5)
-    #         println("$i old: $(old_bonds[i])  new: $(new_bonds[i])")
-    #     end
-    #     if isapprox(old_com[i], new_com[i], atol=1e-5, rtol=1e-5)
-    #         println("$i old com: $(old_com[i])  new com: $(new_com[i])")
-    #     end
-    # end
-
-    # calculate energy of system with new volume
+    # update neighborlist
     make_neighbor_list!(
         simulation_arrays.atom_arrays.r[:],
         simulation_arrays.nonbonded_matrix,
@@ -202,20 +156,20 @@ function volume_change_lj_MC!(
     list = simulation_arrays.neighborlist.list[:]
     energy_new = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
     du = (energy_new - energy_old)
-    dv = (volume_new - volume_old)
-    # walking in V
+    dv = (volume(box_size) - volume(old_box))
+    @assert isapprox(dv, change_vol)
+    # walking in V - change (n) to (n+1) if walking in lnV
     test =
         -1 / (0.00831446 * temp) * (
             du + barostat.set_press * dv -
-            (n) * 0.00831446 * temp * log(volume_new / volume_old)
+            (n) * 0.00831446 * temp * log(volume(box_size) / volume(old_box))
         )
-    #println("du $du, dv: $dv, test: $test")
     # test if we keep this volume or the original volume
     if rand() > exp(test)
         # reset to old coords, move failed
         simulation_arrays.atom_arrays.r[:] = old_r[:]
         simulation_arrays.molecule_arrays.COM[:] = old_com[:]
-        box_size = SVector(L_old, L_old, L_old)
+        box_size = old_box
         make_neighbor_list!(
             simulation_arrays.atom_arrays.r[:],
             simulation_arrays.nonbonded_matrix,
@@ -234,4 +188,83 @@ function volume_change_lj_MC!(
 
     # TODO update tail corrections
     # TODO add module for optimizing vmax
+end
+
+# molecular scaling for volume change
+function change_volume_molecular(simulation_arrays::SimulationArrays, change, box_size)
+    # change should be change in volume
+
+    if length(change) == 1
+        new_length = (volume(box_size) + change)^(1/3)
+        #change = sign(change) * abs(change)^(1/3)    # convert to change in length
+        #change = SVector(change, change, change) # assume same change in x, y, z
+    end
+
+    old_com = simulation_arrays.molecule_arrays.COM
+    new_box = SVector(new_length, new_length, new_length)#box_size .+ change
+    scaling = new_box ./ box_size
+
+    # update centers of mass
+    new_com = [xyz .* scaling for xyz in old_com]
+    com_change = [new_com[i] .- old_com[i] for i=1:length(new_com)]
+    # println("new scaling is $(L_new / L_old)")
+    # for i = 1:length(new_com)
+    #     println("i $i newcom $(new_com[i]) oldcom $(old_com[i])")
+    # end
+
+    # update atom coordinates
+    # old_bonds = []
+    # for i=1:2:n
+    #     dist = norm(simulation_arrays.atom_arrays.r[i]- simulation_arrays.atom_arrays.r[i+1])
+    #     push!(old_bonds, dist)
+    #     if dist > 0.2
+    #         println("SHIT particles $i, $(i+1) too far apart, $dist")
+    #     end
+    # end
+    # for troubleshooting checks that particles are in box
+    minV, maxV = maxmin(new_com)
+    #println(minV, maxV)
+    if minV < 0.0
+        println("Shit, particle is less than 0")
+    end
+    if maxV > new_box[1]
+        println("Shit, particle is outside box")
+    end
+    atom_coords = [zeros(SVector{3}) for i=1:length(simulation_arrays.atom_arrays.r[:])]
+    for this_mol = 1:length(new_com)
+        ia = simulation_arrays.molecule_arrays[this_mol].firstAtom
+        ja = simulation_arrays.molecule_arrays[this_mol].lastAtom
+        # TODO should not need a loop here, a vectorized fuse should work.
+        for j = ia:ja
+            atom_coords[j] = simulation_arrays.atom_arrays.r[j] .+ com_change[this_mol]
+        end
+    end
+    #println("$(simulation_arrays.atom_arrays.r[1]), old was $rememb")
+    #println("$(simulation_arrays.atom_arrays.r[2]), old was $rememb2")
+    #sleep(180)
+    #new_bonds = []
+    for i=1:2:length(atom_coords)
+        dist = norm(atom_coords[i]- atom_coords[i+1])
+        #push!(new_bonds, dist)
+        if abs(dist) > 0.2
+            println("SHIT particles $i, $(i+1) too far apart, $dist")
+        end
+    end
+    return atom_coords, new_com, new_box
+end
+
+function change_volume_atomic(simulation_arrays::SimulationArrays, change, box_size)
+    # change should be change in volume
+
+    if length(change) == 1
+        new_length = (volume(box_size) + change)^(1/3)
+        #change = sign(change) * abs(change)^(1/3)    # convert to change in length
+        #change = SVector(change, change, change) # assume same change in x, y, z
+    end
+    old_length = volume(box_size)^(1/3)
+    scale = new_length / old_length
+    atom_coords = simulation_arrays.atom_arrays.r[:] .* scale
+    new_com = total_com_update!(simulation_arrays)
+    new_box = box_size .* scale
+    return atom_coords, new_com, new_box
 end

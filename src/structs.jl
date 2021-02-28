@@ -47,6 +47,10 @@ end
     z::Float64
 end
 
+# virial pressure
+struct molecular <: molecular_ig end
+struct virial_ig <: atomic_ig end
+struct virial_ke <: atomic_ke end
 ################################################################################
 #
 #                Topology Data Structures (Objects)

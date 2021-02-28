@@ -5,7 +5,6 @@ include("energies.jl")
 include("integrators.jl")
 include("thermo_functions.jl")
 
-
 function sampler!(simulation_arrays, ind, temp_stat, press_stat, ener_stat, KE_stat, PE_stat, vir_tens, cutoff, box_size)
     v = simulation_arrays.atom_arrays.v[:]
     m = simulation_arrays.atom_arrays.mass[:]
@@ -15,30 +14,34 @@ function sampler!(simulation_arrays, ind, temp_stat, press_stat, ener_stat, KE_s
     n = length(r)
     nmol = length(simulation_arrays.molecule_arrays)
     KE = kinetic_energy(v, m)
+    PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
+    #PE = total_energy(simulation_arrays, cutoff, box_size)[1] # no neighbor list
     push!(KE_stat, KE)
     tmp = 2 * KE / (3 * n - 3) / 0.0083144621
     push!(temp_stat, tmp)
     vol = volume(box_size)
-    tot_vir = virial(simulation_arrays, cutoff, box_size)
+    #tot_vir = virial(simulation_arrays, cutoff, box_size)
     ke_tensor = kinetic_energy_tensor(simulation_arrays)
 
-    press_f = press_full(tot_vir, nmol, vol, tmp)
-    press_tensor = press_full_tensor(simulation_arrays, cutoff, box_size, tmp)
-    #PE = total_energy(simulation_arrays, cutoff, box_size)[1] # no neighbor list
-    PE = total_energy(simulation_arrays, cutoff, box_size, point, list)[1]
-    tot_tensor, tenss = pressure_from_tensors(simulation_arrays, cutoff, box_size)
-    push!(vir_tens, tenss)
-    push!(press_stat, press_f)
+    # press_f = press_full(tot_vir, nmol, vol, tmp)
+    # press_tensor = press_full_tensor(simulation_arrays, cutoff, box_size, tmp)
+    # tot_tensor, tenss = pressure_from_tensors(simulation_arrays, cutoff, box_size)
+    molec_ig, atom_ig, atom_ke = molecular(), virial_ig(), virial_ke()
+    molecular_press = compute_pressure(simulation_arrays, cutoff, box_size, tmp, molec_ig)
+    atomic_press = compute_pressure(simulation_arrays, cutoff, box_size, tmp, atom_ig)
+    atomic_press_ke = compute_pressure(simulation_arrays, cutoff, box_size, atom_ke) # , vir_tens
+
+    #push!(vir_tens, tenss)
+    push!(press_stat, atomic_press)
     push!(ener_stat, KE + PE)
     push!(PE_stat, PE)
     if ind % 1000 == 0 || ind == 1
         @printf(
-            "Current step is %d, temp is %.3f, KE is %.3f, KE_tens is %.3f, PE is %.3f, TE is %.3f, press is %.3f, tensor is %.3f, IG is %.3f, tensor is %.3f,box is %.3f\n",
+            "Current step is %d, temp is %.3f, KE is %.3f, KE_tens is %.3f, PE is %.3f, TE is %.3f, mole press is %.3f, atom press is %.3f, grom press is %.3f, IG is %.3f, box is %.3f\n",
             ind, tmp, KE, tr(ke_tensor), PE, KE + PE,
-            press_f, press_tensor, nmol * 0.0083144621 * tmp / vol,
-            tot_tensor,
+            molecular_press, atomic_press, atomic_press_ke, nmol * 0.0083144621 * tmp / vol,
             box_size[1]
-        )
+        ) #
     end
 end
 
@@ -196,7 +199,7 @@ function simulate!(
         # step time forward
         t += simulation_controls.integrator.dt
     end
-    println("average virial tensor was: ", mean(vir_tens))
+    #println("average virial tensor was: ", mean(vir_tens))
     println("average temperature was: ", mean(temp_stat))
     println(
         "average pressure was: ",
