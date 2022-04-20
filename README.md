@@ -7,6 +7,9 @@
 
 This is a playground for the many features of Julia. It is meant as a place to learn/implement package development and feature development, such as using autodiff.
 
+Need to add Ewald and reaction field (Wolf).
+Need to add tests to verify everything works.
+
 An example for using it is:
 
 ```Julia
